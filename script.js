@@ -1,3 +1,6 @@
+// Global flag to prevent URL updates during initialization
+let isInitializing = true;
+
 function init() {
     // Initialize the plus icon in the add button
     const addButton = document.getElementById('addKeyColor');
@@ -9,24 +12,159 @@ function init() {
     // Add event listener for the add button
     addButton.addEventListener('click', addKeyColor);
 
+    // Add event listener for the sort button
+    document.getElementById('sortKeyColors').addEventListener('click', () => {
+        const list = [...document.querySelectorAll('.color-input')];
+        list.sort((a, b) => {
+            const lightnessA = calculateLightness(a.querySelector('.color-input-field').value) || 0;
+            const lightnessB = calculateLightness(b.querySelector('.color-input-field').value) || 0;
+            return lightnessB - lightnessA; // Sort light to dark (high to low lightness)
+        });
+        
+        // Re-append elements in sorted order
+        list.forEach(el => document.getElementById('colorInputs').appendChild(el));
+        
+        // Update indices and labels after sorting
+        list.forEach((input, i) => {
+            input.dataset.index = i;
+            input.querySelector('.delete-btn').setAttribute('onclick', `deleteColor(${i})`);
+        });
+        
+        updateLightnessLabels();
+        updateDeleteButtonsState();
+        updateDisplays(); // Update gradient to reflect new order
+        updateURL(); // Update URL after sorting
+    });
+
     // Add event listeners for color inputs
     updateColorInputListeners();
 
-    // Initial updates
+    // Load state from URL first, then apply initial updates
+    loadFromURL();
+
+    // Initial updates (but don't update URL yet to avoid overwriting loaded state)
     updateLightnessLabels();
     updateColorPreviews();
     updateDisplays();
     
     // Ensure delete buttons are properly enabled/disabled
     updateDeleteButtonsState();
+    
+    // Set up global drag and drop handlers for palette indicators
+    setupPaletteDragHandlers();
+    
+    // Add event listeners for copy buttons
+    addCopyButtonListeners();
+    
+    // Listen for browser back/forward navigation
+    window.addEventListener('popstate', (e) => {
+        if (e.state) {
+            loadFromURL();
+            updateLightnessLabels();
+            updateColorPreviews();
+            updateDisplays();
+            updateDeleteButtonsState();
+        }
+    });
+    
+    // Mark initialization as complete after a short delay
+    setTimeout(() => {
+        isInitializing = false;
+    }, 200);
+}
+
+function setupPaletteDragHandlers() {
+    const gradientDisplay = document.getElementById('gradientDisplay');
+    let isDragging = false;
+    let draggedIndicator = null;
+    let dragStartY = 0;
+    let indicatorStartY = 0;
+    
+    // Mouse down on indicator starts drag
+    gradientDisplay.addEventListener('mousedown', (e) => {
+        if (e.target.classList.contains('palette-indicator')) {
+            isDragging = true;
+            draggedIndicator = e.target;
+            dragStartY = e.clientY;
+            indicatorStartY = parseInt(draggedIndicator.style.top);
+            
+            // Add visual feedback
+            draggedIndicator.style.cursor = 'grabbing';
+            draggedIndicator.style.zIndex = '20';
+            
+            // Prevent text selection
+            e.preventDefault();
+        }
+    });
+    
+    // Mouse move handles dragging
+    document.addEventListener('mousemove', (e) => {
+        if (isDragging && draggedIndicator) {
+            const gradientWrapper = gradientDisplay.querySelector('div');
+            const canvas = gradientWrapper.querySelector('canvas');
+            const rect = gradientWrapper.getBoundingClientRect();
+            
+            // Calculate new Y position (only Y-axis movement)
+            const deltaY = e.clientY - dragStartY;
+            let newY = indicatorStartY + deltaY + 12; // +12 to account for indicator offset
+            
+            // Constrain to canvas bounds
+            newY = Math.max(0, Math.min(newY, canvas.height));
+            
+            // Update indicator position immediately (smooth movement)
+            draggedIndicator.style.top = `${newY - 12}px`;
+            
+            // Update the corresponding palette row data
+            const rowIndex = parseInt(draggedIndicator.dataset.rowIndex);
+            const paletteDisplay = document.getElementById('paletteDisplay');
+            const row = paletteDisplay.children[rowIndex];
+            
+            if (row) {
+                row.dataset.position = newY;
+                
+                // Update lightness input in real-time
+                const lightnessInput = row.querySelector('.palette-lightness-input');
+                if (lightnessInput) {
+                    const newLightness = Math.round((1 - newY / canvas.height) * 100);
+                    lightnessInput.value = newLightness;
+                }
+                
+                // Update palette colors in real-time
+                updatePalette(getActiveKeyColors());
+            }
+        }
+    });
+    
+    // Mouse up ends drag
+    document.addEventListener('mouseup', (e) => {
+        if (isDragging && draggedIndicator) {
+            // Reset visual feedback
+            draggedIndicator.style.cursor = 'move';
+            draggedIndicator.style.zIndex = '10';
+            
+            // Final update to ensure everything is in sync
+            updatePaletteIndicators();
+            
+            // Sort palette colors by lightness after drag
+            sortPaletteByLightness();
+            
+            // Update URL after drag operation
+            updateURL();
+            
+            isDragging = false;
+            draggedIndicator = null;
+        }
+    });
 }
 
 function updateColorInputListeners() {
     document.querySelectorAll('.color-input-field').forEach(input => {
         input.removeEventListener('input', handleColorInput);
         input.removeEventListener('paste', handlePaste);
+        input.removeEventListener('keydown', handleKeyDown);
         input.addEventListener('input', handleColorInput);
         input.addEventListener('paste', handlePaste);
+        input.addEventListener('keydown', handleKeyDown);
         
         // Force uppercase and only allow hex characters
         input.addEventListener('keypress', (e) => {
@@ -39,6 +177,15 @@ function updateColorInputListeners() {
         // Convert to uppercase on input
         input.addEventListener('input', (e) => {
             e.target.value = e.target.value.toUpperCase();
+        });
+
+        // Auto-select content when clicking into the input
+        input.addEventListener('focus', () => {
+            input.select();
+        });
+        
+        input.addEventListener('click', () => {
+            input.select();
         });
     });
 }
@@ -61,6 +208,67 @@ function handlePaste(e) {
     }
 }
 
+function handleKeyDown(e) {
+    // Handle Enter key to expand 3-digit hex to 6-digit
+    if (e.key === 'Enter') {
+        const input = e.target;
+        let value = input.value.toUpperCase();
+        
+        // If we have exactly 3 characters, expand to 6-digit format
+        if (value.length === 3 && /^[0-9A-F]{3}$/i.test(value)) {
+            // Expand each character: f0f becomes ff00ff
+            const expanded = value[0] + value[0] + value[1] + value[1] + value[2] + value[2];
+            input.value = expanded;
+            
+            // Trigger color update
+            handleColorInput.call(input);
+        }
+    }
+}
+
+function toggleKeyColor(btn) {
+    const card = btn.closest('.color-input');
+    
+    card.classList.toggle('muted');
+    
+    // Find the icon element (could be <i> or <svg> after Lucide processing)
+    let iconElement = btn.querySelector('i') || btn.querySelector('svg');
+    
+    // If it's an SVG (already processed by Lucide), we need to recreate the <i> element
+    if (iconElement && iconElement.tagName === 'SVG') {
+        iconElement.remove();
+        iconElement = document.createElement('i');
+        btn.appendChild(iconElement);
+    }
+    
+    // Swap icon between eye and eye-off
+    if (card.classList.contains('muted')) {
+        iconElement.setAttribute('data-lucide', 'eye-off');
+    } else {
+        iconElement.setAttribute('data-lucide', 'eye');
+    }
+    
+    lucide.createIcons();
+    
+    // Update displays immediately
+    updateDisplays();
+    updateURL(); // Update URL when toggling colors
+}
+
+function getActiveKeyColors() {
+    return [...document.querySelectorAll('.color-input')]
+        .filter(c => !c.classList.contains('muted'))
+        .map(c => {
+            let hex = c.querySelector('.color-input-field').value;
+            // Expand 3-digit hex to 6-digit format
+            if (hex && hex.length === 3 && /^[0-9A-F]{3}$/i.test(hex)) {
+                hex = hex[0] + hex[0] + hex[1] + hex[1] + hex[2] + hex[2];
+            }
+            return hex;
+        })
+        .filter(h => h && h.length === 6);
+}
+
 function addKeyColor() {
     const colorInputs = document.getElementById('colorInputs');
     const currentCount = colorInputs.children.length;
@@ -73,6 +281,9 @@ function addKeyColor() {
         newInput.innerHTML = `
             <div class="input-row">
                 <label>Key ${currentCount + 1}</label>
+                <button class="toggle-btn" onclick="toggleKeyColor(this)">
+                    <i data-lucide="eye" size="16"></i>
+                </button>
                 <button class="delete-btn" onclick="deleteColor(${currentCount})">
                     <i data-lucide="x" size="16"></i>
                 </button>
@@ -100,6 +311,7 @@ function addKeyColor() {
         updateDeleteButtonsState();
         updateLightnessLabels();
         updateColorPreviews();
+        updateURL(); // Update URL when adding colors
     }
 }
 
@@ -118,6 +330,7 @@ function deleteColor(index) {
         updateAddButtonState();
         updateDeleteButtonsState();
         updateDisplays();
+        updateURL(); // Update URL when deleting colors
     }
 }
 
@@ -131,17 +344,17 @@ function updateDeleteButtonsState() {
     const colorInputs = document.getElementById('colorInputs');
     const inputs = Array.from(colorInputs.children);
     
-    // Count valid colors (inputs with 6-character hex values)
+    // Count valid colors (inputs with 3 or 6-character hex values)
     const validColors = inputs.filter(input => {
         const colorValue = input.querySelector('.color-input-field').value;
-        return colorValue && colorValue.length === 6;
+        return colorValue && (colorValue.length === 6 || (colorValue.length === 3 && /^[0-9A-F]{3}$/i.test(colorValue)));
     });
     
     // Update each delete button
     inputs.forEach(input => {
         const deleteBtn = input.querySelector('.delete-btn');
         const colorValue = input.querySelector('.color-input-field').value;
-        const isValidColor = colorValue && colorValue.length === 6;
+        const isValidColor = colorValue && (colorValue.length === 6 || (colorValue.length === 3 && /^[0-9A-F]{3}$/i.test(colorValue)));
         
         // Hide delete button if:
         // 1. It's the only input, OR
@@ -155,7 +368,13 @@ function updateDeleteButtonsState() {
 
 function calculateLightness(color) {
     if (!color) return null;
-    const oklch = culori.oklch(color);
+    
+    // Expand 3-digit hex to 6-digit format
+    if (color.length === 3 && /^[0-9A-F]{3}$/i.test(color)) {
+        color = color[0] + color[0] + color[1] + color[1] + color[2] + color[2];
+    }
+    
+    const oklch = culori.oklch('#' + color);
     return oklch ? Math.round(oklch.l * 100) : null;
 }
 
@@ -169,10 +388,16 @@ function updateLightnessLabels() {
 
 function updateColorPreviews() {
     document.querySelectorAll('.color-input').forEach(input => {
-        const colorValue = input.querySelector('.color-input-field').value;
+        let colorValue = input.querySelector('.color-input-field').value;
         const preview = input.querySelector('.color-preview');
+        
+        // Expand 3-digit hex to 6-digit for preview
+        if (colorValue && colorValue.length === 3 && /^[0-9A-F]{3}$/i.test(colorValue)) {
+            colorValue = colorValue[0] + colorValue[0] + colorValue[1] + colorValue[1] + colorValue[2] + colorValue[2];
+        }
+        
         // Set transparent background for empty/invalid colors
-        preview.style.backgroundColor = colorValue ? '#' + colorValue : 'transparent';
+        preview.style.backgroundColor = (colorValue && colorValue.length === 6) ? '#' + colorValue : 'transparent';
     });
 }
 
@@ -180,11 +405,12 @@ function handleColorInput() {
     const input = this;
     let value = input.value.toUpperCase();
     
-    // Only update colors if we have a complete 6-character hex
-    if (value.length === 6) {
+    // Update colors if we have a complete 6-character hex or valid 3-character hex
+    if (value.length === 6 || (value.length === 3 && /^[0-9A-F]{3}$/i.test(value))) {
         updateLightnessLabels();
         updateColorPreviews();
         updateDisplays(); // This should update the gradient
+        updateURL(); // Update URL when colors change
     } else {
         // Clear preview if incomplete
         const preview = input.closest('.color-input').querySelector('.color-preview');
@@ -193,10 +419,7 @@ function handleColorInput() {
 }
 
 function updateDisplays() {
-    // Only include valid 6-character hex colors
-    const colors = Array.from(document.querySelectorAll('.color-input-field'))
-        .map(input => input.value)
-        .filter(color => color && color.length === 6); // Only include complete colors
+    const colors = getActiveKeyColors();
     
     updateGradient(colors);
     updatePalette(colors);
@@ -218,6 +441,10 @@ function getColorAtPosition(y, stops, canvas) {
 
 function updateGradient(colors) {
     const gradientDisplay = document.getElementById('gradientDisplay');
+    
+    // Force a complete refresh by clearing everything first
+    gradientDisplay.innerHTML = '';
+    
     const canvas = document.createElement('canvas');
     const ctx = canvas.getContext('2d');
     
@@ -229,8 +456,7 @@ function updateGradient(colors) {
     canvas.width = gradientDisplay.offsetWidth;
     canvas.height = gradientDisplay.offsetHeight;
     
-    // Clear and add canvas
-    gradientDisplay.innerHTML = '';
+    // Add canvas to DOM
     gradientDisplay.appendChild(wrapper);
     wrapper.appendChild(canvas);
     
@@ -256,7 +482,12 @@ function updateGradient(colors) {
         .filter(item => item !== null)
         .sort((a, b) => b.color.l - a.color.l);
 
-    if (keyColors.length === 0) return;
+    if (keyColors.length === 0) {
+        // Clear the canvas if no colors are active
+        ctx.fillStyle = '#f0f0f0';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        return;
+    }
 
     // Draw gradient line by line
     for (let y = 0; y < canvas.height; y++) {
@@ -430,10 +661,98 @@ function addColorToPalette(color, y) {
             }, 200);
         });
         
-        // Add lightness
-        const lightnessDiv = document.createElement('div');
-        lightnessDiv.className = 'palette-lightness';
-        lightnessDiv.textContent = `${lightness}%`;
+        // Add editable lightness input with % wrapper
+        const lightnessWrapper = document.createElement('div');
+        lightnessWrapper.className = 'palette-lightness-wrapper';
+        
+        const lightnessInput = document.createElement('input');
+        lightnessInput.type = 'number';
+        lightnessInput.className = 'palette-lightness-input';
+        lightnessInput.min = '0';
+        lightnessInput.max = '100';
+        lightnessInput.step = '1';
+        lightnessInput.value = lightness;
+        
+        const percentSymbol = document.createElement('span');
+        percentSymbol.className = 'percent-symbol';
+        percentSymbol.textContent = '%';
+        
+        lightnessWrapper.appendChild(lightnessInput);
+        lightnessWrapper.appendChild(percentSymbol);
+        
+        // Handle lightness input changes on Enter and arrow keys only
+        lightnessInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                const canvas = gradientDisplay.querySelector('canvas');
+                if (canvas) {
+                    const newPosition = Math.round((1 - lightnessInput.value / 100) * canvas.height);
+                    row.dataset.position = newPosition;
+                    
+                    setTimeout(() => {
+                        updatePaletteIndicators();
+                        updatePalette(getActiveKeyColors());
+                        sortPaletteByLightness();
+                        updateURL(); // Update URL when palette changes
+                    }, 0);
+                }
+            } else if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
+                e.preventDefault(); // Prevent default arrow behavior
+                
+                const canvas = gradientDisplay.querySelector('canvas');
+                if (canvas) {
+                    let currentValue = parseInt(lightnessInput.value) || 0;
+                    
+                    // Increment or decrement the value
+                    if (e.key === 'ArrowUp') {
+                        currentValue = Math.min(100, currentValue + 1);
+                    } else {
+                        currentValue = Math.max(0, currentValue - 1);
+                    }
+                    
+                    // Update the input value
+                    lightnessInput.value = currentValue;
+                    
+                    // Calculate and update position
+                    const newPosition = Math.round((1 - currentValue / 100) * canvas.height);
+                    row.dataset.position = newPosition;
+                    
+                    // Use setTimeout to maintain focus after DOM updates
+                    setTimeout(() => {
+                        updatePaletteIndicators();
+                        updatePalette(getActiveKeyColors());
+                        sortPaletteByLightness();
+                        updateURL(); // Update URL when palette changes
+                        
+                        // Keep focus on the input after arrow key updates
+                        lightnessInput.focus();
+                    }, 0);
+                }
+            }
+        });
+        
+        // Auto-select content when clicking into the input
+        lightnessInput.addEventListener('focus', () => {
+            lightnessInput.select();
+        });
+        
+        lightnessInput.addEventListener('click', () => {
+            lightnessInput.select();
+        });
+        
+        // Also update on blur (when user clicks away or tabs out)
+        lightnessInput.addEventListener('blur', () => {
+            const canvas = gradientDisplay.querySelector('canvas');
+            if (canvas) {
+                const newPosition = Math.round((1 - lightnessInput.value / 100) * canvas.height);
+                row.dataset.position = newPosition;
+                updatePaletteIndicators();
+                updatePalette(getActiveKeyColors());
+                
+                // Sort palette colors by lightness after text input change
+                sortPaletteByLightness();
+                updateURL(); // Update URL when palette changes
+            }
+        });
         
         // Add delete button
         const deleteBtn = document.createElement('button');
@@ -442,10 +761,11 @@ function addColorToPalette(color, y) {
         deleteBtn.addEventListener('click', () => {
             row.remove();
             updatePaletteIndicators();
+            updateURL(); // Update URL when palette changes
         });
         
         details.appendChild(hexDiv);
-        details.appendChild(lightnessDiv);
+        details.appendChild(lightnessWrapper);
         details.appendChild(deleteBtn);
         row.appendChild(details);
         
@@ -459,10 +779,12 @@ function addColorToPalette(color, y) {
         // Update threshold to 0.66
         indicator.style.color = oklch.l > 0.66 ? '#000000' : '#FFFFFF';
         indicator.textContent = index + 1;
+        indicator.dataset.rowIndex = index;
         gradientDisplay.appendChild(indicator);
     });
     
     lucide.createIcons();
+    updateURL(); // Update URL when adding to palette
 }
 
 // Add this helper function to update indicators when colors are deleted
@@ -487,8 +809,34 @@ function updatePaletteIndicators() {
         // Update threshold to 0.66
         indicator.style.color = oklch.l > 0.66 ? '#000000' : '#FFFFFF';
         indicator.textContent = index + 1;
+        
+        // Store the row index as a data attribute for event delegation
+        indicator.dataset.rowIndex = index;
+        
         gradientDisplay.appendChild(indicator);
     });
+}
+
+// Sort palette colors by lightness (light to dark)
+function sortPaletteByLightness() {
+    const paletteDisplay = document.getElementById('paletteDisplay');
+    const rows = [...paletteDisplay.children];
+    
+    if (rows.length <= 1) return; // No need to sort if 1 or fewer items
+    
+    // Sort rows by their position (which corresponds to lightness)
+    // Lower position = higher lightness (closer to top/white)
+    rows.sort((a, b) => {
+        const positionA = parseInt(a.dataset.position) || 0;
+        const positionB = parseInt(b.dataset.position) || 0;
+        return positionA - positionB; // Sort light to dark (low position to high position)
+    });
+    
+    // Re-append rows in sorted order
+    rows.forEach(row => paletteDisplay.appendChild(row));
+    
+    // Update indicators to reflect new order
+    updatePaletteIndicators();
 }
 
 // Add this function to create gradient stops
@@ -597,9 +945,11 @@ function updatePalette(colors) {
         const hexDiv = item.element.querySelector('.palette-hex');
         hexDiv.firstChild.textContent = hex;
         
-        // Update lightness value
-        const lightnessDiv = item.element.querySelector('.palette-lightness');
-        lightnessDiv.textContent = `${lightness}%`;
+        // Update lightness input value
+        const lightnessInput = item.element.querySelector('.palette-lightness-input');
+        if (lightnessInput) {
+            lightnessInput.value = lightness;
+        }
         
         // Add indicator using the saved position
         const indicator = document.createElement('div');
@@ -609,7 +959,63 @@ function updatePalette(colors) {
         // Update threshold to 0.66
         indicator.style.color = color.l > 0.66 ? '#000000' : '#FFFFFF';
         indicator.textContent = index + 1;
+        indicator.dataset.rowIndex = index;
         gradientDisplay.appendChild(indicator);
+    });
+}
+
+function showToast(message) {
+    let toast = document.querySelector('.toast');
+    if (!toast) {
+        toast = document.createElement('div');
+        toast.className = 'toast';
+        document.body.appendChild(toast);
+    }
+    toast.textContent = message;
+    toast.classList.add('show');
+    setTimeout(() => {
+        toast.classList.remove('show');
+    }, 2000);
+}
+
+function addCopyButtonListeners() {
+    document.getElementById('copySVG').addEventListener('click', () => {
+        const rows = [...document.querySelectorAll('.palette-row')];
+        if (rows.length === 0) return;
+        const rects = rows.map((r, i) => `<rect x="0" y="${i * 40}" width="120" height="40" fill="${r.querySelector('.palette-color').style.backgroundColor}" id="L${r.querySelector('.palette-lightness-input').value}"/>`).join('');
+        navigator.clipboard.writeText(`<svg xmlns="http://www.w3.org/2000/svg" width="120" height="${rows.length * 40}">${rects}</svg>`);
+        showToast('SVG Copied!');
+    });
+
+    document.getElementById('copyFigma').addEventListener('click', () => {
+        const rows = [...document.querySelectorAll('.palette-row')];
+        if (rows.length === 0) return;
+        
+        // Create CSS custom properties (variables)
+        const cssVariables = rows.map(r => {
+            const backgroundColor = r.querySelector('.palette-color').style.backgroundColor;
+            if (!backgroundColor) return null;
+
+            const hex = culori.formatHex(backgroundColor).toUpperCase();
+            const lightness = r.querySelector('.palette-lightness-input').value;
+            
+            return `  --color-l${lightness}: ${hex};`;
+        }).filter(Boolean);
+
+        if (cssVariables.length === 0) return;
+
+        // Create complete CSS with root selector
+        const cssOutput = `:root {\n${cssVariables.join('\n')}\n}\n\n/* Usage examples:\nbackground-color: var(--color-l${rows[0]?.querySelector('.palette-lightness-input').value || '100'});\ncolor: var(--color-l${rows[rows.length-1]?.querySelector('.palette-lightness-input').value || '0'});\n*/`;
+        
+        // Copy CSS variables to clipboard
+        navigator.clipboard.writeText(cssOutput).then(() => {
+            showToast('CSS Variables Copied!');
+        }).catch(err => {
+            console.error('Failed to copy CSS variables:', err);
+            showToast('Copy failed - check console');
+            console.log('CSS Variables:');
+            console.log(cssOutput);
+        });
     });
 }
 
@@ -619,6 +1025,335 @@ window.addEventListener('load', () => {
     // Initialize Lucide icons
     lucide.createIcons();
 });
+
+// URL Persistence Functions
+function updateURL() {
+    // Don't update URL during initialization to preserve loaded state
+    if (isInitializing) {
+        return;
+    }
+    
+    try {
+        const state = getCurrentState();
+        const urlParams = new URLSearchParams();
+        
+        // Encode key colors
+        if (state.keyColors.length > 0) {
+            const keyColorsParam = state.keyColors.map(c => `${c.color}${c.muted ? 'm' : ''}`).join(',');
+            urlParams.set('k', keyColorsParam);
+        }
+        
+        // Encode palette colors
+        if (state.paletteColors.length > 0) {
+            const paletteParam = state.paletteColors.map(c => `${c.color}@${c.lightness}`).join(',');
+            urlParams.set('p', paletteParam);
+        }
+        
+        // Update URL without triggering page reload
+        const newUrl = urlParams.toString() ? 
+            `${window.location.pathname}?${urlParams.toString()}` : 
+            window.location.pathname;
+        
+        window.history.replaceState(state, '', newUrl);
+    } catch (error) {
+        console.warn('Failed to update URL:', error);
+    }
+}
+
+function loadFromURL() {
+    try {
+        const urlParams = new URLSearchParams(window.location.search);
+        
+        // Load key colors
+        const keyColorsParam = urlParams.get('k');
+        if (keyColorsParam) {
+            loadKeyColorsFromParam(keyColorsParam);
+        }
+        
+        // Load palette colors (after a short delay to ensure gradient is ready)
+        const paletteParam = urlParams.get('p');
+        if (paletteParam) {
+            setTimeout(() => {
+                loadPaletteFromParam(paletteParam);
+            }, 100);
+        }
+    } catch (error) {
+        console.warn('Failed to load from URL:', error);
+    }
+}
+
+function getCurrentState() {
+    const keyColors = [...document.querySelectorAll('.color-input')].map(input => ({
+        color: input.querySelector('.color-input-field').value || '',
+        muted: input.classList.contains('muted')
+    })).filter(c => c.color.trim());
+    
+    const paletteColors = [...document.querySelectorAll('.palette-row')].map(row => {
+        try {
+            const colorElement = row.querySelector('.palette-color');
+            const lightnessElement = row.querySelector('.palette-lightness-input');
+            
+            if (!colorElement || !lightnessElement) {
+                return null;
+            }
+            
+            const backgroundColor = colorElement.style.backgroundColor;
+            if (!backgroundColor) {
+                return null;
+            }
+            
+            const color = culori.formatHex(backgroundColor).replace('#', '');
+            const lightness = parseInt(lightnessElement.value);
+            
+            if (!color || isNaN(lightness)) {
+                return null;
+            }
+            
+            return { color, lightness };
+        } catch (error) {
+            return null;
+        }
+    }).filter(Boolean);
+    
+    return { keyColors, paletteColors };
+}
+
+function loadKeyColorsFromParam(param) {
+    const colorInputs = document.getElementById('colorInputs');
+    
+    // Clear existing inputs except the first one
+    while (colorInputs.children.length > 1) {
+        colorInputs.removeChild(colorInputs.lastChild);
+    }
+    
+    // Decode URL-encoded parameter and split by comma
+    const decodedParam = decodeURIComponent(param);
+    const colors = decodedParam.split(',').filter(c => c.trim());
+    
+    colors.forEach((colorData, index) => {
+        const trimmedColor = colorData.trim();
+        const isMuted = trimmedColor.endsWith('m');
+        const color = isMuted ? trimmedColor.slice(0, -1) : trimmedColor;
+        
+        // Validate hex color (3 or 6 characters)
+        if (!/^[0-9A-Fa-f]{3}$|^[0-9A-Fa-f]{6}$/.test(color)) {
+            return;
+        }
+        
+        // Add new input if needed
+        if (index >= colorInputs.children.length) {
+            addKeyColor();
+        }
+        
+        const input = colorInputs.children[index];
+        if (input) {
+            const colorField = input.querySelector('.color-input-field');
+            colorField.value = color.toUpperCase();
+            
+            // Set muted state
+            if (isMuted) {
+                input.classList.add('muted');
+                const toggleBtn = input.querySelector('.toggle-btn');
+                let iconElement = toggleBtn.querySelector('i') || toggleBtn.querySelector('svg');
+                if (iconElement && iconElement.tagName === 'SVG') {
+                    iconElement.remove();
+                    iconElement = document.createElement('i');
+                    toggleBtn.appendChild(iconElement);
+                }
+                iconElement.setAttribute('data-lucide', 'eye-off');
+                lucide.createIcons();
+            }
+        }
+    });
+}
+
+function loadPaletteFromParam(param) {
+    const paletteDisplay = document.getElementById('paletteDisplay');
+    const gradientDisplay = document.querySelector('#gradientDisplay > div');
+    
+    if (!gradientDisplay) return;
+    
+    const canvas = gradientDisplay.querySelector('canvas');
+    if (!canvas) return;
+    
+    // Clear existing palette
+    paletteDisplay.innerHTML = '';
+    gradientDisplay.querySelectorAll('.palette-indicator').forEach(el => el.remove());
+    
+    // Decode URL-encoded parameter and split by comma
+    const decodedParam = decodeURIComponent(param);
+    const colors = decodedParam.split(',').filter(c => c.trim() && c.includes('@'));
+    
+    colors.forEach((colorData, index) => {
+        const trimmedColorData = colorData.trim();
+        const [color, lightness] = trimmedColorData.split('@');
+        
+        // Validate hex color and lightness
+        if (!/^[0-9A-Fa-f]{3}$|^[0-9A-Fa-f]{6}$/.test(color)) {
+            return;
+        }
+        
+        const lightnessValue = parseInt(lightness);
+        if (isNaN(lightnessValue) || lightnessValue < 0 || lightnessValue > 100) {
+            return;
+        }
+        
+        const position = Math.round((1 - lightnessValue / 100) * canvas.height);
+        
+        // Create row container
+        const row = document.createElement('div');
+        row.className = 'palette-row';
+        row.dataset.position = position;
+        
+        // Add color block
+        const colorDiv = document.createElement('div');
+        colorDiv.className = 'palette-color';
+        colorDiv.style.backgroundColor = '#' + color;
+        row.appendChild(colorDiv);
+        
+        // Add details section
+        const details = document.createElement('div');
+        details.className = 'palette-details';
+        
+        // Add hex with copy button
+        const hexDiv = document.createElement('div');
+        hexDiv.className = 'palette-hex';
+        hexDiv.innerHTML = `#${color.toUpperCase()}<i data-lucide="copy"></i>`;
+        hexDiv.addEventListener('click', () => {
+            const colorBlock = row.querySelector('.palette-color');
+            const actualColor = culori.formatHex(colorBlock.style.backgroundColor).toUpperCase();
+            navigator.clipboard.writeText(actualColor);
+            hexDiv.classList.add('copied');
+            setTimeout(() => {
+                hexDiv.classList.remove('copied');
+            }, 200);
+        });
+        
+        // Add editable lightness input with % wrapper
+        const lightnessWrapper = document.createElement('div');
+        lightnessWrapper.className = 'palette-lightness-wrapper';
+        
+        const lightnessInput = document.createElement('input');
+        lightnessInput.type = 'number';
+        lightnessInput.className = 'palette-lightness-input';
+        lightnessInput.min = '0';
+        lightnessInput.max = '100';
+        lightnessInput.step = '1';
+        lightnessInput.value = lightnessValue;
+        
+        const percentSymbol = document.createElement('span');
+        percentSymbol.className = 'percent-symbol';
+        percentSymbol.textContent = '%';
+        
+        lightnessWrapper.appendChild(lightnessInput);
+        lightnessWrapper.appendChild(percentSymbol);
+        
+        // Handle lightness input changes on Enter and arrow keys only
+        lightnessInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                const canvas = gradientDisplay.querySelector('canvas');
+                if (canvas) {
+                    const newPosition = Math.round((1 - lightnessInput.value / 100) * canvas.height);
+                    row.dataset.position = newPosition;
+                    
+                    setTimeout(() => {
+                        updatePaletteIndicators();
+                        updatePalette(getActiveKeyColors());
+                        sortPaletteByLightness();
+                        updateURL(); // Update URL when palette changes
+                    }, 0);
+                }
+            } else if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
+                e.preventDefault(); // Prevent default arrow behavior
+                
+                const canvas = gradientDisplay.querySelector('canvas');
+                if (canvas) {
+                    let currentValue = parseInt(lightnessInput.value) || 0;
+                    
+                    // Increment or decrement the value
+                    if (e.key === 'ArrowUp') {
+                        currentValue = Math.min(100, currentValue + 1);
+                    } else {
+                        currentValue = Math.max(0, currentValue - 1);
+                    }
+                    
+                    // Update the input value
+                    lightnessInput.value = currentValue;
+                    
+                    // Calculate and update position
+                    const newPosition = Math.round((1 - currentValue / 100) * canvas.height);
+                    row.dataset.position = newPosition;
+                    
+                    // Use setTimeout to maintain focus after DOM updates
+                    setTimeout(() => {
+                        updatePaletteIndicators();
+                        updatePalette(getActiveKeyColors());
+                        sortPaletteByLightness();
+                        updateURL(); // Update URL when palette changes
+                        
+                        // Keep focus on the input after arrow key updates
+                        lightnessInput.focus();
+                    }, 0);
+                }
+            }
+        });
+        
+        // Auto-select content when clicking into the input
+        lightnessInput.addEventListener('focus', () => {
+            lightnessInput.select();
+        });
+        
+        lightnessInput.addEventListener('click', () => {
+            lightnessInput.select();
+        });
+        
+        // Also update on blur (when user clicks away or tabs out)
+        lightnessInput.addEventListener('blur', () => {
+            const canvas = gradientDisplay.querySelector('canvas');
+            if (canvas) {
+                const newPosition = Math.round((1 - lightnessInput.value / 100) * canvas.height);
+                row.dataset.position = newPosition;
+                updatePaletteIndicators();
+                updatePalette(getActiveKeyColors());
+                
+                // Sort palette colors by lightness after text input change
+                sortPaletteByLightness();
+                updateURL(); // Update URL when palette changes
+            }
+        });
+        
+        // Add delete button
+        const deleteBtn = document.createElement('button');
+        deleteBtn.className = 'palette-delete';
+        deleteBtn.innerHTML = '<i data-lucide="x"></i>';
+        deleteBtn.addEventListener('click', () => {
+            row.remove();
+            updatePaletteIndicators();
+            updateURL();
+        });
+        
+        details.appendChild(hexDiv);
+        details.appendChild(lightnessWrapper);
+        details.appendChild(deleteBtn);
+        row.appendChild(details);
+        
+        paletteDisplay.appendChild(row);
+        
+        // Add indicator
+        const indicator = document.createElement('div');
+        indicator.className = 'palette-indicator';
+        indicator.style.top = `${position - 12}px`;
+        indicator.style.backgroundColor = '#' + color;
+        
+        const oklch = culori.oklch('#' + color);
+        indicator.style.color = oklch.l > 0.66 ? '#000000' : '#FFFFFF';
+        indicator.textContent = index + 1;
+        indicator.dataset.rowIndex = index;
+        gradientDisplay.appendChild(indicator);
+    });
+    
+    lucide.createIcons();
+}
 
 // Update the initial HTML structure to match the new format
 document.addEventListener('DOMContentLoaded', () => {

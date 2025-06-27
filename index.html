@@ -11,11 +11,14 @@
 <body>
     <div class="container">
         <div class="column key-colors">
-            <h3>Key Colors</h3>
+            <h3>Key Colors <button id="sortKeyColors"><i data-lucide="arrow-up-down" size="14"></i></button></h3>
             <div class="color-inputs" id="colorInputs">
                 <div class="color-input" data-index="0">
                     <div class="input-row">
                         <label>Key 1 (64%)</label>
+                        <button class="toggle-btn" onclick="toggleKeyColor(this)">
+                            <i data-lucide="eye" size="16"></i>
+                        </button>
                         <button class="delete-btn" onclick="deleteColor(0)" disabled>
                             <i data-lucide="x" size="16"></i>
                         </button>
@@ -38,7 +41,13 @@
             <div id="gradientDisplay"></div>
         </div>
         <div class="column palette">
-            <h3>Palette</h3>
+            <h3>
+                Palette
+                <span class="header-buttons">
+                    <button id="copySVG" title="Copy as SVG"><i data-lucide="clipboard" size="14"></i></button>
+                    <button id="copyFigma" title="Copy as CSS Variables"><i data-lucide="code" size="14"></i></button>
+                </span>
+            </h3>
             <div id="paletteDisplay"></div>
         </div>
     </div>
