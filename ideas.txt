@@ -1,0 +1,9 @@
+let me edit the lch values of key colors. only for one is enough.
+
+fix icon alignments if not using monospaced font
+
+add numbers to palette colors
+
+let me select a color from the palette as a source color for apca contrast check, and show the apca contrast ratio in the tooltip after the lightness over the L-gradient
+
+Then show the contrast ratio for each palette color

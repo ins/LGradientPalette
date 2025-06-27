@@ -50,11 +50,16 @@ function init() {
     // Ensure delete buttons are properly enabled/disabled
     updateDeleteButtonsState();
     
+
+    
     // Set up global drag and drop handlers for palette indicators
     setupPaletteDragHandlers();
     
     // Add event listeners for copy buttons
     addCopyButtonListeners();
+    
+    // Set up quick lightness input
+    setupQuickLightnessInput();
     
     // Listen for browser back/forward navigation
     window.addEventListener('popstate', (e) => {
@@ -64,6 +69,7 @@ function init() {
             updateColorPreviews();
             updateDisplays();
             updateDeleteButtonsState();
+
         }
     });
     
@@ -273,7 +279,7 @@ function addKeyColor() {
     const colorInputs = document.getElementById('colorInputs');
     const currentCount = colorInputs.children.length;
     
-    if (currentCount < 5) {
+    if (currentCount < 7) {
         const newInput = document.createElement('div');
         newInput.className = 'color-input';
         newInput.dataset.index = currentCount;
@@ -324,7 +330,7 @@ function deleteColor(index) {
             const color = input.querySelector('.color-input-field').value;
             const lightness = calculateLightness(color);
             input.dataset.index = i;
-            input.querySelector('label').textContent = `Key ${i + 1} (${lightness}%)`;
+            input.querySelector('label').textContent = `KEY-${i + 1}${lightness !== null ? ` L${lightness}` : ''}`;
             input.querySelector('.delete-btn').setAttribute('onclick', `deleteColor(${i})`);
         });
         updateAddButtonState();
@@ -337,7 +343,7 @@ function deleteColor(index) {
 function updateAddButtonState() {
     const addButton = document.getElementById('addKeyColor');
     const colorInputs = document.getElementById('colorInputs');
-    addButton.disabled = colorInputs.children.length >= 5;
+    addButton.disabled = colorInputs.children.length >= 7;
 }
 
 function updateDeleteButtonsState() {
@@ -382,7 +388,7 @@ function updateLightnessLabels() {
     document.querySelectorAll('.color-input').forEach((input, i) => {
         const color = input.querySelector('.color-input-field').value;
         const lightness = calculateLightness(color);
-        input.querySelector('label').textContent = `Key ${i + 1}${lightness !== null ? ` (${lightness}%)` : ''}`;
+        input.querySelector('label').textContent = `KEY-${i + 1}${lightness !== null ? ` L${lightness}` : ''}`;
     });
 }
 
@@ -607,9 +613,12 @@ function addColorToPalette(color, y) {
         position: parseInt(row.dataset.position)
     }));
     
-    // Get click position from event
-    const rect = canvas.getBoundingClientRect();
-    const clickPosition = event.clientY - rect.top;
+    // Use provided position or get click position from event
+    let clickPosition = y;
+    if (typeof y === 'undefined' && event) {
+        const rect = canvas.getBoundingClientRect();
+        clickPosition = event.clientY - rect.top;
+    }
     
     colors.push({
         color: color,
@@ -661,9 +670,13 @@ function addColorToPalette(color, y) {
             }, 200);
         });
         
-        // Add editable lightness input with % wrapper
+        // Add editable lightness input with L prefix
         const lightnessWrapper = document.createElement('div');
         lightnessWrapper.className = 'palette-lightness-wrapper';
+        
+        const lightnessPrefix = document.createElement('span');
+        lightnessPrefix.className = 'palette-lightness-prefix';
+        lightnessPrefix.textContent = 'L';
         
         const lightnessInput = document.createElement('input');
         lightnessInput.type = 'number';
@@ -673,12 +686,8 @@ function addColorToPalette(color, y) {
         lightnessInput.step = '1';
         lightnessInput.value = lightness;
         
-        const percentSymbol = document.createElement('span');
-        percentSymbol.className = 'percent-symbol';
-        percentSymbol.textContent = '%';
-        
+        lightnessWrapper.appendChild(lightnessPrefix);
         lightnessWrapper.appendChild(lightnessInput);
-        lightnessWrapper.appendChild(percentSymbol);
         
         // Handle lightness input changes on Enter and arrow keys only
         lightnessInput.addEventListener('keydown', (e) => {
@@ -787,6 +796,216 @@ function addColorToPalette(color, y) {
     updateURL(); // Update URL when adding to palette
 }
 
+// Add color to palette by lightness value (for quick lightness input)
+function addColorToPaletteByLightness(hex, lightnessValue) {
+    const paletteDisplay = document.getElementById('paletteDisplay');
+    const gradientDisplay = document.querySelector('#gradientDisplay > div');
+    const canvas = gradientDisplay?.querySelector('canvas');
+    
+    if (!canvas) return;
+    
+    // Calculate position from lightness value
+    const position = Math.round((1 - lightnessValue / 100) * canvas.height);
+    
+    // Get existing colors with their lightness values
+    const existingColors = [...paletteDisplay.children].map(row => {
+        const lightnessInput = row.querySelector('.palette-lightness-input');
+        return {
+            element: row,
+            lightness: parseInt(lightnessInput.value),
+            position: parseInt(row.dataset.position)
+        };
+    });
+    
+    // Add new color data
+    const newColorData = {
+        hex: hex,
+        lightness: lightnessValue,
+        position: position
+    };
+    
+    // Combine existing and new, then sort by lightness (high to low = light to dark)
+    const allColors = [...existingColors, newColorData].sort((a, b) => {
+        const lightnessA = a.lightness || 0;
+        const lightnessB = b.lightness || 0;
+        return lightnessB - lightnessA; // Sort light to dark
+    });
+    
+    // Clear palette
+    paletteDisplay.innerHTML = '';
+    gradientDisplay.querySelectorAll('.palette-indicator').forEach(el => el.remove());
+    
+    // Rebuild palette in correct order
+    allColors.forEach((item, index) => {
+        if (item.element) {
+            // Existing element - just re-append
+            paletteDisplay.appendChild(item.element);
+            
+            // Update indicator
+            const hex = culori.formatHex(item.element.querySelector('.palette-color').style.backgroundColor).toUpperCase();
+            const oklch = culori.oklch(hex);
+            const indicator = document.createElement('div');
+            indicator.className = 'palette-indicator';
+            indicator.style.top = `${item.position - 12}px`;
+            indicator.style.backgroundColor = hex;
+            indicator.style.color = oklch.l > 0.66 ? '#000000' : '#FFFFFF';
+            indicator.textContent = index + 1;
+            indicator.dataset.rowIndex = index;
+            gradientDisplay.appendChild(indicator);
+        } else {
+            // New element - create it
+            createPaletteRow(item.hex, item.lightness, item.position, index, paletteDisplay, gradientDisplay);
+        }
+    });
+    
+    lucide.createIcons();
+    updateURL();
+}
+
+// Helper function to create a single palette row
+function createPaletteRow(hex, lightnessValue, position, index, paletteDisplay, gradientDisplay) {
+    // Create row container
+    const row = document.createElement('div');
+    row.className = 'palette-row';
+    row.dataset.position = position;
+    
+    // Add color block
+    const colorDiv = document.createElement('div');
+    colorDiv.className = 'palette-color';
+    colorDiv.style.backgroundColor = hex;
+    row.appendChild(colorDiv);
+    
+    // Add details section
+    const details = document.createElement('div');
+    details.className = 'palette-details';
+    
+    // Add hex with copy button
+    const hexDiv = document.createElement('div');
+    hexDiv.className = 'palette-hex';
+    hexDiv.innerHTML = `${hex}<i data-lucide="copy"></i>`;
+    hexDiv.addEventListener('click', () => {
+        const colorBlock = row.querySelector('.palette-color');
+        const actualColor = culori.formatHex(colorBlock.style.backgroundColor).toUpperCase();
+        navigator.clipboard.writeText(actualColor);
+        hexDiv.classList.add('copied');
+        setTimeout(() => {
+            hexDiv.classList.remove('copied');
+        }, 200);
+    });
+    
+    // Add editable lightness input with L prefix
+    const lightnessWrapper = document.createElement('div');
+    lightnessWrapper.className = 'palette-lightness-wrapper';
+    
+    const lightnessPrefix = document.createElement('span');
+    lightnessPrefix.className = 'palette-lightness-prefix';
+    lightnessPrefix.textContent = 'L';
+    
+    const lightnessInput = document.createElement('input');
+    lightnessInput.type = 'number';
+    lightnessInput.className = 'palette-lightness-input';
+    lightnessInput.min = '0';
+    lightnessInput.max = '100';
+    lightnessInput.step = '1';
+    lightnessInput.value = lightnessValue;
+    
+    lightnessWrapper.appendChild(lightnessPrefix);
+    lightnessWrapper.appendChild(lightnessInput);
+    
+    // Handle lightness input changes on Enter and arrow keys only
+    lightnessInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+            const canvas = gradientDisplay.querySelector('canvas');
+            if (canvas) {
+                const newPosition = Math.round((1 - lightnessInput.value / 100) * canvas.height);
+                row.dataset.position = newPosition;
+                
+                setTimeout(() => {
+                    updatePaletteIndicators();
+                    updatePalette(getActiveKeyColors());
+                    sortPaletteByLightness();
+                    updateURL();
+                }, 0);
+            }
+        } else if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
+            e.preventDefault();
+            
+            const canvas = gradientDisplay.querySelector('canvas');
+            if (canvas) {
+                let currentValue = parseInt(lightnessInput.value) || 0;
+                
+                if (e.key === 'ArrowUp') {
+                    currentValue = Math.min(100, currentValue + 1);
+                } else {
+                    currentValue = Math.max(0, currentValue - 1);
+                }
+                
+                lightnessInput.value = currentValue;
+                const newPosition = Math.round((1 - currentValue / 100) * canvas.height);
+                row.dataset.position = newPosition;
+                
+                setTimeout(() => {
+                    updatePaletteIndicators();
+                    updatePalette(getActiveKeyColors());
+                    sortPaletteByLightness();
+                    updateURL();
+                    lightnessInput.focus();
+                }, 0);
+            }
+        }
+    });
+    
+    // Auto-select content when clicking into the input
+    lightnessInput.addEventListener('focus', () => {
+        lightnessInput.select();
+    });
+    
+    lightnessInput.addEventListener('click', () => {
+        lightnessInput.select();
+    });
+    
+    // Also update on blur
+    lightnessInput.addEventListener('blur', () => {
+        const canvas = gradientDisplay.querySelector('canvas');
+        if (canvas) {
+            const newPosition = Math.round((1 - lightnessInput.value / 100) * canvas.height);
+            row.dataset.position = newPosition;
+            updatePaletteIndicators();
+            updatePalette(getActiveKeyColors());
+            sortPaletteByLightness();
+            updateURL();
+        }
+    });
+    
+    // Add delete button
+    const deleteBtn = document.createElement('button');
+    deleteBtn.className = 'palette-delete';
+    deleteBtn.innerHTML = '<i data-lucide="x"></i>';
+    deleteBtn.addEventListener('click', () => {
+        row.remove();
+        updatePaletteIndicators();
+        updateURL();
+    });
+    
+    details.appendChild(hexDiv);
+    details.appendChild(lightnessWrapper);
+    details.appendChild(deleteBtn);
+    row.appendChild(details);
+    
+    paletteDisplay.appendChild(row);
+    
+    // Add indicator
+    const oklch = culori.oklch(hex);
+    const indicator = document.createElement('div');
+    indicator.className = 'palette-indicator';
+    indicator.style.top = `${position - 12}px`;
+    indicator.style.backgroundColor = hex;
+    indicator.style.color = oklch.l > 0.66 ? '#000000' : '#FFFFFF';
+    indicator.textContent = index + 1;
+    indicator.dataset.rowIndex = index;
+    gradientDisplay.appendChild(indicator);
+}
+
 // Add this helper function to update indicators when colors are deleted
 function updatePaletteIndicators() {
     const paletteDisplay = document.getElementById('paletteDisplay');
@@ -816,6 +1035,8 @@ function updatePaletteIndicators() {
         gradientDisplay.appendChild(indicator);
     });
 }
+
+
 
 // Sort palette colors by lightness (light to dark)
 function sortPaletteByLightness() {
@@ -1016,6 +1237,94 @@ function addCopyButtonListeners() {
             console.log('CSS Variables:');
             console.log(cssOutput);
         });
+    });
+
+    document.getElementById('clearPalette').addEventListener('click', () => {
+        const paletteDisplay = document.getElementById('paletteDisplay');
+        const gradientDisplay = document.querySelector('#gradientDisplay > div');
+        
+        // Clear all palette rows
+        paletteDisplay.innerHTML = '';
+        
+        // Clear all palette indicators
+        if (gradientDisplay) {
+            gradientDisplay.querySelectorAll('.palette-indicator').forEach(el => el.remove());
+        }
+        
+        // Update URL to reflect cleared state
+        updateURL();
+        
+        showToast('Palette Cleared!');
+    });
+}
+
+function setupQuickLightnessInput() {
+    const quickInput = document.getElementById('quickLightnessInput');
+    
+    if (!quickInput) return;
+    
+    // Handle Enter key to add palette color
+    quickInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            
+            const lightnessValue = parseInt(quickInput.value);
+            
+            // Validate lightness value
+            if (isNaN(lightnessValue) || lightnessValue < 0 || lightnessValue > 100) {
+                return;
+            }
+            
+            // Check if we have active key colors
+            const activeColors = getActiveKeyColors();
+            if (activeColors.length === 0) {
+                return;
+            }
+            
+            // Get gradient display and canvas
+            const gradientDisplay = document.querySelector('#gradientDisplay > div');
+            const canvas = gradientDisplay?.querySelector('canvas');
+            
+            if (!canvas) {
+                return;
+            }
+            
+            // Calculate position from lightness value
+            const position = Math.round((1 - lightnessValue / 100) * canvas.height);
+            
+            // Create gradient stops to get the color at this position
+            const stops = createGradientStops(activeColors, canvas.height);
+            if (stops.length === 0) return;
+            
+            // Get color at the calculated position
+            const color = getColorAtPosition(position, stops, canvas);
+            const hex = culori.formatHex(color).toUpperCase();
+            
+            // Add the color to the palette directly without position-based sorting
+            addColorToPaletteByLightness(hex, lightnessValue);
+            
+            // Clear and auto-select the input for next entry
+            quickInput.value = '';
+            quickInput.select();
+        }
+    });
+    
+    // Auto-select content when clicking into the input
+    quickInput.addEventListener('focus', () => {
+        quickInput.select();
+    });
+    
+    quickInput.addEventListener('click', () => {
+        quickInput.select();
+    });
+    
+    // Validate input range as user types
+    quickInput.addEventListener('input', (e) => {
+        const value = parseInt(e.target.value);
+        if (!isNaN(value)) {
+            if (value < 0) e.target.value = 0;
+            if (value > 100) e.target.value = 100;
+        }
     });
 }
 
@@ -1229,9 +1538,13 @@ function loadPaletteFromParam(param) {
             }, 200);
         });
         
-        // Add editable lightness input with % wrapper
+        // Add editable lightness input with L prefix
         const lightnessWrapper = document.createElement('div');
         lightnessWrapper.className = 'palette-lightness-wrapper';
+        
+        const lightnessPrefix = document.createElement('span');
+        lightnessPrefix.className = 'palette-lightness-prefix';
+        lightnessPrefix.textContent = 'L';
         
         const lightnessInput = document.createElement('input');
         lightnessInput.type = 'number';
@@ -1241,12 +1554,8 @@ function loadPaletteFromParam(param) {
         lightnessInput.step = '1';
         lightnessInput.value = lightnessValue;
         
-        const percentSymbol = document.createElement('span');
-        percentSymbol.className = 'percent-symbol';
-        percentSymbol.textContent = '%';
-        
+        lightnessWrapper.appendChild(lightnessPrefix);
         lightnessWrapper.appendChild(lightnessInput);
-        lightnessWrapper.appendChild(percentSymbol);
         
         // Handle lightness input changes on Enter and arrow keys only
         lightnessInput.addEventListener('keydown', (e) => {

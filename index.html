@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Color Palette Generator</title>
     <link rel="stylesheet" href="styles.css">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
     <script src="https://unpkg.com/lucide@latest"></script>
 </head>
 <body>
@@ -15,7 +15,7 @@
             <div class="color-inputs" id="colorInputs">
                 <div class="color-input" data-index="0">
                     <div class="input-row">
-                        <label>Key 1 (64%)</label>
+                        <label>KEY-1 L64</label>
                         <button class="toggle-btn" onclick="toggleKeyColor(this)">
                             <i data-lucide="eye" size="16"></i>
                         </button>
@@ -37,15 +37,20 @@
             </button>
         </div>
         <div class="column spectrum">
-            <h3>Spectrum</h3>
+            <h3>L-Gradient</h3>
             <div id="gradientDisplay"></div>
         </div>
         <div class="column palette">
             <h3>
                 Palette
                 <span class="header-buttons">
-                    <button id="copySVG" title="Copy as SVG"><i data-lucide="clipboard" size="14"></i></button>
-                    <button id="copyFigma" title="Copy as CSS Variables"><i data-lucide="code" size="14"></i></button>
+                    <div class="quick-lightness-input">
+                        <span class="lightness-prefix">L</span>
+                        <input type="number" id="quickLightnessInput" min="0" max="100" step="1" />
+                    </div>
+                    <button id="copySVG" class="text-btn">Copy SVG</button>
+                    <button id="copyFigma" class="text-btn">Copy CSS</button>
+                    <button id="clearPalette" class="text-btn">Clear</button>
                 </span>
             </h3>
             <div id="paletteDisplay"></div>

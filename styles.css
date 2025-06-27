@@ -1,8 +1,12 @@
+:root {
+    --app-font-family: 'IBM Plex Mono', monospace;
+}
+
 body {
     margin: 0;
     padding: 0;
     background: white;
-    font-family: 'Inter', sans-serif;
+    font-family: var(--app-font-family);
     font-size: 14px;
 }
 
@@ -18,7 +22,7 @@ body {
 }
 
 .column.key-colors {
-    width: 160px;
+    width: 140px;
 }
 
 h3 {
@@ -89,11 +93,12 @@ h3 {
 .color-input {
     display: flex;
     flex-direction: column;
+    box-sizing: border-box;
     gap: 4px;
     padding: 8px;
     border: 1px solid #ddd;
     border-radius: 4px;
-    width: 160px;
+    width: 100%;
 }
 
 .color-input.muted {
@@ -115,10 +120,10 @@ h3 {
 }
 
 .color-input-field {
-    width: 54px;
+    width: 6ch; /* Exactly 7 characters for hex input (FF8800) */
     border: none;
     padding: 0;
-    font-family: 'Inter', sans-serif;
+    font-family: var(--app-font-family);
     outline: none;
 }
 
@@ -198,11 +203,7 @@ h3 {
 #paletteDisplay {
     display: flex;
     flex-direction: column;
-}
-
-.palette-color {
-    width: 100px;
-    height: 50px;
+    height: 600px; /* Match gradient height */
 }
 
 .hex-input-wrapper {
@@ -294,12 +295,12 @@ h3 {
 .palette-row {
     display: flex;
     align-items: center;
-    height: 50px;
+    flex: 1; /* Each row takes equal share of available height */
 }
 
 .palette-color {
     width: 100px;
-    height: 50px;
+    height: 100%;
     flex-shrink: 0;
 }
 
@@ -336,17 +337,27 @@ h3 {
 .palette-lightness-wrapper {
     display: flex;
     align-items: center;
-    gap: 2px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    padding: 4px;
+    background: white;
+}
+
+.palette-lightness-prefix {
+    color: #999;
+    margin-right: 1px;
+    font-size: 14px;
 }
 
 .palette-lightness-input {
-    width: 35px;
-    border: 1px solid #ddd;
-    border-radius: 3px;
-    padding: 2px 4px;
-    font-size: 12px;
+    width: 3ch; /* Exactly 3 characters for lightness values (0-100) */
+    border: none;
+    padding: 0;
+    font-family: var(--app-font-family);
+    font-size: 14px;
+    outline: none;
+    background: transparent;
     text-align: center;
-    background: white;
     -moz-appearance: textfield; /* For Firefox */
 }
 
@@ -355,16 +366,6 @@ h3 {
 .palette-lightness-input::-webkit-inner-spin-button {
   -webkit-appearance: none;
   margin: 0;
-}
-
-.palette-lightness-input:focus {
-    outline: none;
-    border-color: #666;
-}
-
-.percent-symbol {
-    font-size: 12px;
-    color: #666;
 }
 
 .palette-delete {
@@ -410,4 +411,61 @@ h3 {
 .toast.show {
     opacity: 1;
     top: 30px;
+}
+
+.quick-lightness-input {
+    display: flex;
+    align-items: center;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    padding: 4px;
+    background: white;
+    margin-right: 4px;
+}
+
+.lightness-prefix {
+    color: #999;
+    margin-right: 1px;
+    font-size: 14px;
+}
+
+.quick-lightness-input input {
+    width: 3ch; /* Exactly 3 characters for lightness values (0-100) */
+    border: none;
+    padding: 0;
+    font-family: var(--app-font-family);
+    font-size: 14px;
+    outline: none;
+    background: transparent;
+    text-align: center;
+    -moz-appearance: textfield; /* For Firefox */
+}
+
+/* For Chrome, Safari, Edge, Opera */
+.quick-lightness-input input::-webkit-outer-spin-button,
+.quick-lightness-input input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.quick-lightness-input input::placeholder {
+    color: #999;
+    font-size: 14px;
+}
+
+.text-btn {
+    font-family: var(--app-font-family);
+    font-size: 12px;
+    font-weight: 500;
+    padding: 4px 6px !important;
+    border-radius: 3px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    white-space: nowrap; /* Prevent text wrapping */
+    width: auto; /* Auto width to fit content */
+}
+
+.text-btn:hover {
+    background: #f0f0f0 !important;
+    color: #333 !important;
 }
