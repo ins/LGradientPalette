@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Color Palette Generator</title>
+    <link rel="stylesheet" href="styles.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest"></script>
+</head>
+<body>
+    <div class="container">
+        <div class="column key-colors">
+            <h3>Key Colors</h3>
+            <div class="color-inputs" id="colorInputs">
+                <div class="color-input" data-index="0">
+                    <div class="input-row">
+                        <label>Key 1 (64%)</label>
+                        <button class="delete-btn" onclick="deleteColor(0)" disabled>
+                            <i data-lucide="x" size="16"></i>
+                        </button>
+                    </div>
+                    <div class="input-group">
+                        <div class="color-preview"></div>
+                        <div class="hex-input-wrapper">
+                            <span class="hex-prefix">#</span>
+                            <input type="text" class="color-input-field" value="FF8800" maxlength="6" />
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <button id="addKeyColor" class="add-btn">
+                <i data-lucide="plus" size="14"></i>
+            </button>
+        </div>
+        <div class="column spectrum">
+            <h3>Spectrum</h3>
+            <div id="gradientDisplay"></div>
+        </div>
+        <div class="column palette">
+            <h3>Palette</h3>
+            <div id="paletteDisplay"></div>
+        </div>
+    </div>
+    <script src="culori.min.js"></script>
+    <script src="script.js"></script>
+</body>
+</html>
