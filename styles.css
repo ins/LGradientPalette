@@ -1,22 +1,25 @@
 :root {
     --app-font-family: 'Geist Mono', monospace;
+    --icon-size: 16px;
     
     /* Light mode colors */
-    --bg-primary: white;
-    --bg-secondary: #f5f5f5;
-    --text-primary: #333;
-    --text-secondary: #666;
-    --border-primary: #ddd;
-    --border-secondary: #ccc;
+    --bg-primary: #fff;
+    --bg-secondary: #f2f2f2;
+    --bg-tertiary: #f8f8f8;
+    --text-primary: #000;
+    --text-secondary: #636363;
+    --border-primary: #636363;
+    --border-secondary: #BEBEBE;
 }
 
 :root.dark-mode {
     /* Dark mode colors */
-    --bg-primary: #111;
-    --bg-secondary: #333;
+    --bg-primary: #000;
+    --bg-secondary: #292929;
+    --bg-tertiary: #1b1b1b;
     --text-primary: #e0e0e0;
     --text-secondary: #888;
-    --border-primary: #444;
+    --border-primary: #888;
     --border-secondary: #555;
 }
 
@@ -28,6 +31,12 @@ body {
     font-family: var(--app-font-family);
     font-size: 14px;
     transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+/* Universal icon sizing */
+svg {
+    width: var(--icon-size);
+    height: var(--icon-size);
 }
 
 .container {
@@ -42,7 +51,8 @@ body {
 }
 
 .column.key-colors {
-    width: 140px;
+    width: auto;
+    min-width: max-content;
 }
 
 h3 {
@@ -59,67 +69,60 @@ h3 {
     align-items: center;
 }
 
-.header-buttons button {
+/* Unified Icon Button Styles */
+.header-buttons button,
+#sortKeyColors,
+.toggle-btn,
+.delete-btn,
+.palette-delete {
     border: none;
     background: none;
     color: var(--text-secondary);
     cursor: pointer;
-    padding: 2px;
+    padding: 0;
     display: flex;
     align-items: center;
     justify-content: center;
-    border-radius: 3px;
-    margin-left: 4px;
-    transition: background-color 0.2s ease, color 0.2s ease;
+    transition: color 0.2s ease;
 }
 
-.header-buttons button:hover {
-    background: var(--bg-secondary);
+.header-buttons button:hover,
+#sortKeyColors:hover,
+.toggle-btn:hover,
+.delete-btn:hover,
+.palette-delete:hover {
     color: var(--text-primary);
 }
 
-.header-buttons button svg {
-    width: 14px;
-    height: 14px;
-}
-
+/* Spacing & border-radius overrides for specific icon buttons */
+.header-buttons button,
 #sortKeyColors {
-    border: none;
-    background: none;
-    color: var(--text-secondary);
-    cursor: pointer;
     padding: 2px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
+    margin-left: 4px;
     border-radius: 3px;
-    transition: background-color 0.2s ease, color 0.2s ease;
 }
 
-#sortKeyColors:hover {
-    background: var(--bg-secondary);
-    color: var(--text-primary);
+.toggle-btn {
+    margin-left: 4px;
 }
 
-#sortKeyColors svg {
-    width: 14px;
-    height: 14px;
+.delete-btn:disabled {
+    color: var(--text-secondary);
+    cursor: not-allowed;
+    opacity: 0.5;
 }
 
 .color-inputs {
     display: flex;
     flex-direction: column;
-    gap: 8px;
+    gap: 4px;
 }
 
 .color-input {
     display: flex;
-    flex-direction: column;
+    align-items: center;
     box-sizing: border-box;
-    gap: 4px;
-    padding: 8px;
-    border: 1px solid var(--border-primary);
-    border-radius: 4px;
+    gap: 8px;
     width: 100%;
     background: var(--bg-primary);
     transition: border-color 0.2s ease, background-color 0.2s ease;
@@ -129,18 +132,24 @@ h3 {
     opacity: .35;
 }
 
-.input-group {
+.color-preview-numbered {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    flex-shrink: 0;
     display: flex;
     align-items: center;
-    gap: 6px;
+    justify-content: center;
+    font-size: 12px;
+    font-weight: 500;
+    color: #000000; /* Will be updated dynamically based on lightness */
 }
 
-.color-preview {
-    width: 16px;
-    height: 16px;
-    border-radius: 50%;
-    border: 1px solid var(--bg-primary);
-    flex-shrink: 0;
+.lightness-display {
+    font-size: 12px;
+    color: var(--text-secondary);
+    font-weight: 500;
+    min-width: 3ch;
 }
 
 /* Unified text input styles */
@@ -156,7 +165,6 @@ h3 {
     -moz-appearance: textfield; /* For Firefox */
 }
 
-/* For Chrome, Safari, Edge, Opera */
 .text-input::-webkit-outer-spin-button,
 .text-input::-webkit-inner-spin-button {
     -webkit-appearance: none;
@@ -167,72 +175,33 @@ h3 {
     color: var(--text-secondary);
 }
 
-/* Specific width overrides */
 .text-input.hex-input {
-    width: 6ch; /* Exactly 6 characters for hex input (FF8800) */
+    width: 6ch;
     text-align: left;
 }
 
 .text-input.lightness-input {
-    width: 3ch; /* Exactly 3 characters for lightness values (0-100) */
-}
-
-.delete-btn {
-    border: none;
-    background: none;
-    color: var(--text-secondary);
-    cursor: pointer;
-    padding: 0;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: color 0.2s ease;
-}
-
-.delete-btn:hover {
-    color: var(--text-primary);
-}
-
-.delete-btn:disabled {
-    color: var(--text-secondary);
-    cursor: not-allowed;
-}
-
-.toggle-btn {
-    margin-left: 4px;
-    color: var(--text-secondary);
-    border: none;
-    background: none;
-    cursor: pointer;
-    padding: 0;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: color 0.2s ease;
-}
-
-.toggle-btn svg {
-    width: 14px;
-    height: 14px;
+    width: 3ch;
 }
 
 .add-btn {
-    margin-top: 10px;
-    width: 100%;
-    padding: 8px;
-    border: 1px solid var(--border-primary);
+    margin-top: 4px;
+    margin-left: 32px;
+    width: 84px;
+    padding: 6px;
     border-radius: 4px;
-    background: var(--bg-primary);
+    border: 0;
     cursor: pointer;
     display: flex;
     align-items: center;
+    background-color: var(--bg-tertiary);
     justify-content: center;
     color: var(--text-secondary);
-    transition: background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease;
+    transition: 0.2s ease;
 }
 
 .add-btn:hover {
-    background: var(--bg-secondary);
+    background-color: var(--bg-secondary);
     color: var(--text-primary);
 }
 
@@ -240,12 +209,6 @@ h3 {
     background: var(--bg-secondary);
     cursor: not-allowed;
     color: var(--text-secondary);
-}
-
-.add-btn svg {
-    width: 14px;
-    height: 14px;
-    display: block;
 }
 
 #gradientDisplay {
@@ -256,20 +219,32 @@ h3 {
 #paletteDisplay {
     display: flex;
     flex-direction: column;
-    height: 400px; /* Match gradient height */
+    height: 400px;
 }
 
-.hex-input-wrapper {
+/* Unified input wrapper for all text inputs with prefixes */
+.input-wrapper {
     display: flex;
     align-items: center;
-    border: 1px solid var(--border-primary);
     border-radius: 4px;
-    padding: 4px;
+    padding: 4px 10px 4px 8px;
+    box-sizing: border-box;
+    gap: 4px;
+    background: var(--bg-secondary);
+    border: 1px solid var(--bg-secondary);
+    transition: border-color 0.2s ease, background-color 0.2s ease;
 }
 
-.hex-prefix {
+.input-wrapper:focus-within {
+    border-color: var(--border-primary);
+}
+
+.hex-prefix,
+.lightness-prefix,
+.palette-lightness-prefix {
     color: var(--text-secondary);
     margin-right: 1px;
+    font-size: 14px;
 }
 
 .tooltip {
@@ -283,29 +258,6 @@ h3 {
     z-index: 1000;
 }
 
-.delete-btn svg {
-    width: 16px;
-    height: 16px;
-}
-
-.add-btn svg {
-    width: 14px;
-    height: 14px;
-}
-
-.input-row {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-}
-
-.input-row label {
-    font-size: 12px;
-    text-transform: uppercase;
-    color: var(--text-secondary);
-}
-
-/* Add styles for the gradient indicators */
 .gradient-indicator {
     position: absolute;
     left: -14px;
@@ -344,11 +296,10 @@ h3 {
     box-shadow: 0 2px 8px rgba(0,0,0,0.2);
 }
 
-/* Add these new styles */
 .palette-row {
     display: flex;
     align-items: center;
-    flex: 1; /* Each row takes equal share of available height */
+    flex: 1;
 }
 
 .palette-color {
@@ -375,59 +326,8 @@ h3 {
     color: var(--text-secondary);
 }
 
-.palette-hex:active {
-    color: var(--text-secondary);
-}
-
 .palette-hex.copied {
     color: var(--text-secondary);
-}
-
-.palette-lightness {
-    color: var(--text-secondary);
-}
-
-.palette-lightness-wrapper {
-    display: flex;
-    align-items: center;
-    border: 1px solid var(--border-primary);
-    border-radius: 4px;
-    padding: 4px;
-    background: var(--bg-primary);
-    transition: border-color 0.2s ease, background-color 0.2s ease;
-}
-
-.palette-lightness-prefix {
-    color: var(--text-secondary);
-    margin-right: 1px;
-    font-size: 14px;
-}
-
-/* Palette lightness input now uses .text-input.lightness-input */
-
-.palette-delete {
-    display: flex;
-    align-items: center;
-    border: none;
-    background: none;
-    padding: 0;
-    color: var(--text-secondary);
-    cursor: pointer;
-    transition: color 0.2s ease;
-}
-
-.palette-delete:hover {
-    color: var(--text-primary);
-}
-
-.palette-delete svg {
-    width: 16px;
-    height: 16px;
-}
-
-.palette-hex svg {
-    width: 14px;
-    height: 14px;
 }
 
 .toast {
@@ -452,23 +352,8 @@ h3 {
 }
 
 .quick-lightness-input {
-    display: flex;
-    align-items: center;
-    border: 1px solid var(--border-primary);
-    border-radius: 4px;
-    padding: 4px;
-    background: var(--bg-primary);
     margin-right: 4px;
-    transition: border-color 0.2s ease, background-color 0.2s ease;
 }
-
-.lightness-prefix {
-    color: var(--text-secondary);
-    margin-right: 1px;
-    font-size: 14px;
-}
-
-/* Quick lightness input now uses .text-input.lightness-input */
 
 .text-btn {
     font-family: var(--app-font-family);
@@ -478,8 +363,8 @@ h3 {
     border-radius: 3px;
     text-transform: uppercase;
     letter-spacing: 0.5px;
-    white-space: nowrap; /* Prevent text wrapping */
-    width: auto; /* Auto width to fit content */
+    white-space: nowrap;
+    width: auto;
 }
 
 .text-btn:hover {

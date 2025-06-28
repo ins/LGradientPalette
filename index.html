@@ -14,36 +14,32 @@
             <h3>Key Colors 
                 <div class="header-buttons">
                     <button id="darkModeToggle" title="Toggle dark mode">
-                        <i data-lucide="sun" size="14"></i>
+                        <i data-lucide="sun"></i>
                     </button>
-                    <button id="sortKeyColors"><i data-lucide="arrow-up-down" size="14"></i></button>
+                    <button id="sortKeyColors"><i data-lucide="arrow-down-wide-narrow"></i></button>
                 </div>
             </h3>
             <div class="color-inputs" id="colorInputs">
                 <div class="color-input" data-index="0">
-                    <div class="input-row">
-                        <label>KEY-1 L64</label>
-                        <button class="toggle-btn" onclick="toggleKeyColor(this)">
-                            <i data-lucide="eye" size="16"></i>
-                        </button>
-                        <button class="delete-btn" onclick="deleteColor(0)" disabled>
-                            <i data-lucide="x" size="16"></i>
-                        </button>
+                    <div class="color-preview-numbered">1</div>
+                    <div class="input-wrapper">
+                        <span class="hex-prefix">#</span>
+                        <input type="text" class="text-input hex-input" value="FF8800" maxlength="6" />
                     </div>
-                    <div class="input-group">
-                        <div class="color-preview"></div>
-                        <div class="hex-input-wrapper">
-                            <span class="hex-prefix">#</span>
-                            <input type="text" class="text-input hex-input" value="FF8800" maxlength="6" />
-                        </div>
-                    </div>
+                    <span class="lightness-display">L64</span>
+                    <button class="toggle-btn" onclick="toggleKeyColor(this)">
+                        <i data-lucide="eye"></i>
+                    </button>
+                    <button class="delete-btn" onclick="deleteColor(0)" disabled>
+                        <i data-lucide="x"></i>
+                    </button>
                 </div>
             </div>
             <button id="addKeyColor" class="add-btn">
-                <i data-lucide="plus" size="14"></i>
+                <i data-lucide="plus"></i>
             </button>
         </div>
-        <div class="column spectrum">
+        <div class="column l-gradient">
             <h3>L-Gradient</h3>
             <div id="gradientDisplay"></div>
         </div>
@@ -51,7 +47,7 @@
             <h3>
                 Palette
                 <span class="header-buttons">
-                    <div class="quick-lightness-input">
+                    <div class="quick-lightness-input input-wrapper">
                         <span class="lightness-prefix">L</span>
                         <input type="number" id="quickLightnessInput" class="text-input lightness-input" min="0" max="100" step="1" />
                     </div>

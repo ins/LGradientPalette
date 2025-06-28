@@ -77,11 +77,16 @@ function init() {
     });
     
     // Initialize dark mode from localStorage
-    initializeDarkMode();
+    try {
+        initializeDarkMode();
+    } catch (error) {
+        console.warn('Failed to initialize dark mode:', error);
+    }
     
     // Mark initialization as complete after a short delay
     setTimeout(() => {
         isInitializing = false;
+        console.log('Initialization complete, URL updates now enabled');
     }, 200);
 }
 
@@ -89,7 +94,10 @@ function initializeDarkMode() {
     const isDarkMode = localStorage.getItem('darkMode') === 'true';
     if (isDarkMode) {
         document.documentElement.classList.add('dark-mode');
-        updateDarkModeIcon(true);
+        // Only update icon if DOM is ready
+        if (document.getElementById('darkModeToggle')) {
+            updateDarkModeIcon(true);
+        }
     }
 }
 
@@ -101,7 +109,16 @@ function toggleDarkMode() {
 
 function updateDarkModeIcon(isDarkMode) {
     const darkModeToggle = document.getElementById('darkModeToggle');
+    if (!darkModeToggle) {
+        console.log('updateDarkModeIcon: Dark mode toggle not found, skipping');
+        return;
+    }
+    
     const icon = darkModeToggle.querySelector('i');
+    if (!icon) {
+        console.log('updateDarkModeIcon: Icon element not found, skipping');
+        return;
+    }
     
     if (isDarkMode) {
         icon.setAttribute('data-lucide', 'moon');
@@ -321,22 +338,18 @@ function addKeyColor() {
         newInput.dataset.index = currentCount;
         
         newInput.innerHTML = `
-            <div class="input-row">
-                <label>Key ${currentCount + 1}</label>
-                <button class="toggle-btn" onclick="toggleKeyColor(this)">
-                    <i data-lucide="eye" size="16"></i>
-                </button>
-                <button class="delete-btn" onclick="deleteColor(${currentCount})">
-                    <i data-lucide="x" size="16"></i>
-                </button>
+            <div class="color-preview-numbered">${currentCount + 1}</div>
+            <div class="input-wrapper">
+                <span class="hex-prefix">#</span>
+                <input type="text" class="text-input hex-input" value="" maxlength="6" />
             </div>
-            <div class="input-group">
-                <div class="color-preview"></div>
-                <div class="hex-input-wrapper">
-                    <span class="hex-prefix">#</span>
-                    <input type="text" class="text-input hex-input" value="" maxlength="6" />
-                </div>
-            </div>
+            <span class="lightness-display">L--</span>
+            <button class="toggle-btn" onclick="toggleKeyColor(this)">
+                <i data-lucide="eye" size="16"></i>
+            </button>
+            <button class="delete-btn" onclick="deleteColor(${currentCount})">
+                <i data-lucide="x" size="16"></i>
+            </button>
         `;
         
         colorInputs.appendChild(newInput);
@@ -363,10 +376,8 @@ function deleteColor(index) {
         colorInputs.children[index].remove();
         // Renumber remaining inputs
         Array.from(colorInputs.children).forEach((input, i) => {
-            const color = input.querySelector('.text-input.hex-input').value;
-            const lightness = calculateLightness(color);
             input.dataset.index = i;
-            input.querySelector('label').textContent = `KEY-${i + 1}${lightness !== null ? ` L${lightness}` : ''}`;
+            input.querySelector('.color-preview-numbered').textContent = i + 1;
             input.querySelector('.delete-btn').setAttribute('onclick', `deleteColor(${i})`);
         });
         updateAddButtonState();
@@ -424,22 +435,32 @@ function updateLightnessLabels() {
     document.querySelectorAll('.color-input').forEach((input, i) => {
         const color = input.querySelector('.text-input.hex-input').value;
         const lightness = calculateLightness(color);
-        input.querySelector('label').textContent = `KEY-${i + 1}${lightness !== null ? ` L${lightness}` : ''}`;
+        const lightnessDisplay = input.querySelector('.lightness-display');
+        lightnessDisplay.textContent = lightness !== null ? `L${lightness}` : 'L--';
     });
 }
 
 function updateColorPreviews() {
     document.querySelectorAll('.color-input').forEach(input => {
         let colorValue = input.querySelector('.text-input.hex-input').value;
-        const preview = input.querySelector('.color-preview');
+        const preview = input.querySelector('.color-preview-numbered');
         
         // Expand 3-digit hex to 6-digit for preview
         if (colorValue && colorValue.length === 3 && /^[0-9A-F]{3}$/i.test(colorValue)) {
             colorValue = colorValue[0] + colorValue[0] + colorValue[1] + colorValue[1] + colorValue[2] + colorValue[2];
         }
         
-        // Set transparent background for empty/invalid colors
-        preview.style.backgroundColor = (colorValue && colorValue.length === 6) ? '#' + colorValue : 'transparent';
+        // Set background color and text color based on lightness
+        if (colorValue && colorValue.length === 6) {
+            preview.style.backgroundColor = '#' + colorValue;
+            
+            // Calculate lightness to determine text color
+            const oklch = culori.oklch('#' + colorValue);
+            preview.style.color = oklch && oklch.l > 0.66 ? '#000000' : '#FFFFFF';
+        } else {
+            preview.style.backgroundColor = 'transparent';
+            preview.style.color = '#000000';
+        }
     });
 }
 
@@ -455,8 +476,9 @@ function handleColorInput() {
         updateURL(); // Update URL when colors change
     } else {
         // Clear preview if incomplete
-        const preview = input.closest('.color-input').querySelector('.color-preview');
+        const preview = input.closest('.color-input').querySelector('.color-preview-numbered');
         preview.style.backgroundColor = 'transparent';
+        preview.style.color = '#000000';
     }
 }
 
@@ -708,7 +730,7 @@ function addColorToPalette(color, y) {
         
         // Add editable lightness input with L prefix
         const lightnessWrapper = document.createElement('div');
-        lightnessWrapper.className = 'palette-lightness-wrapper';
+        lightnessWrapper.className = 'input-wrapper';
         
         const lightnessPrefix = document.createElement('span');
         lightnessPrefix.className = 'palette-lightness-prefix';
@@ -931,7 +953,7 @@ function createPaletteRow(hex, lightnessValue, position, index, paletteDisplay, 
     
     // Add editable lightness input with L prefix
     const lightnessWrapper = document.createElement('div');
-    lightnessWrapper.className = 'palette-lightness-wrapper';
+    lightnessWrapper.className = 'input-wrapper';
     
     const lightnessPrefix = document.createElement('span');
     lightnessPrefix.className = 'palette-lightness-prefix';
@@ -1375,11 +1397,14 @@ window.addEventListener('load', () => {
 function updateURL() {
     // Don't update URL during initialization to preserve loaded state
     if (isInitializing) {
+        console.log('updateURL: Skipping URL update during initialization');
         return;
     }
     
     try {
         const state = getCurrentState();
+        console.log('updateURL: Current state:', state);
+        
         const urlParams = new URLSearchParams();
         
         // Encode key colors
@@ -1392,6 +1417,7 @@ function updateURL() {
         if (state.paletteColors.length > 0) {
             const paletteParam = state.paletteColors.map(c => `${c.color}@${c.lightness}`).join(',');
             urlParams.set('p', paletteParam);
+            console.log('updateURL: Palette param:', paletteParam);
         }
         
         // Update URL without triggering page reload
@@ -1399,6 +1425,7 @@ function updateURL() {
             `${window.location.pathname}?${urlParams.toString()}` : 
             window.location.pathname;
         
+        console.log('updateURL: New URL:', newUrl);
         window.history.replaceState(state, '', newUrl);
     } catch (error) {
         console.warn('Failed to update URL:', error);
@@ -1439,27 +1466,34 @@ function getCurrentState() {
             const lightnessElement = row.querySelector('.text-input.lightness-input');
             
             if (!colorElement || !lightnessElement) {
+                console.log('getCurrentState: Missing elements in palette row');
                 return null;
             }
             
             const backgroundColor = colorElement.style.backgroundColor;
             if (!backgroundColor) {
+                console.log('getCurrentState: No background color found');
                 return null;
             }
             
             const color = culori.formatHex(backgroundColor).replace('#', '');
             const lightness = parseInt(lightnessElement.value);
             
+            console.log('getCurrentState: Processing palette color:', { backgroundColor, color, lightness });
+            
             if (!color || isNaN(lightness)) {
+                console.log('getCurrentState: Invalid color or lightness');
                 return null;
             }
             
             return { color, lightness };
         } catch (error) {
+            console.log('getCurrentState: Error processing palette row:', error);
             return null;
         }
     }).filter(Boolean);
     
+    console.log('getCurrentState: Final palette colors:', paletteColors);
     return { keyColors, paletteColors };
 }
 
@@ -1576,7 +1610,7 @@ function loadPaletteFromParam(param) {
         
         // Add editable lightness input with L prefix
         const lightnessWrapper = document.createElement('div');
-        lightnessWrapper.className = 'palette-lightness-wrapper';
+        lightnessWrapper.className = 'input-wrapper';
         
         const lightnessPrefix = document.createElement('span');
         lightnessPrefix.className = 'palette-lightness-prefix';
