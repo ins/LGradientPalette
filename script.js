@@ -12,12 +12,15 @@ function init() {
     // Add event listener for the add button
     addButton.addEventListener('click', addKeyColor);
 
+    // Add event listener for the dark mode toggle
+    document.getElementById('darkModeToggle').addEventListener('click', toggleDarkMode);
+
     // Add event listener for the sort button
     document.getElementById('sortKeyColors').addEventListener('click', () => {
         const list = [...document.querySelectorAll('.color-input')];
         list.sort((a, b) => {
-            const lightnessA = calculateLightness(a.querySelector('.color-input-field').value) || 0;
-            const lightnessB = calculateLightness(b.querySelector('.color-input-field').value) || 0;
+            const lightnessA = calculateLightness(a.querySelector('.text-input.hex-input').value) || 0;
+            const lightnessB = calculateLightness(b.querySelector('.text-input.hex-input').value) || 0;
             return lightnessB - lightnessA; // Sort light to dark (high to low lightness)
         });
         
@@ -73,10 +76,43 @@ function init() {
         }
     });
     
+    // Initialize dark mode from localStorage
+    initializeDarkMode();
+    
     // Mark initialization as complete after a short delay
     setTimeout(() => {
         isInitializing = false;
     }, 200);
+}
+
+function initializeDarkMode() {
+    const isDarkMode = localStorage.getItem('darkMode') === 'true';
+    if (isDarkMode) {
+        document.documentElement.classList.add('dark-mode');
+        updateDarkModeIcon(true);
+    }
+}
+
+function toggleDarkMode() {
+    const isDarkMode = document.documentElement.classList.toggle('dark-mode');
+    localStorage.setItem('darkMode', isDarkMode.toString());
+    updateDarkModeIcon(isDarkMode);
+}
+
+function updateDarkModeIcon(isDarkMode) {
+    const darkModeToggle = document.getElementById('darkModeToggle');
+    const icon = darkModeToggle.querySelector('i');
+    
+    if (isDarkMode) {
+        icon.setAttribute('data-lucide', 'moon');
+        darkModeToggle.title = 'Switch to light mode';
+    } else {
+        icon.setAttribute('data-lucide', 'sun');
+        darkModeToggle.title = 'Switch to dark mode';
+    }
+    
+    // Reinitialize lucide icons to update the changed icon
+    lucide.createIcons();
 }
 
 function setupPaletteDragHandlers() {
@@ -128,8 +164,8 @@ function setupPaletteDragHandlers() {
             if (row) {
                 row.dataset.position = newY;
                 
-                // Update lightness input in real-time
-                const lightnessInput = row.querySelector('.palette-lightness-input');
+                            // Update lightness input in real-time
+            const lightnessInput = row.querySelector('.text-input.lightness-input');
                 if (lightnessInput) {
                     const newLightness = Math.round((1 - newY / canvas.height) * 100);
                     lightnessInput.value = newLightness;
@@ -164,7 +200,7 @@ function setupPaletteDragHandlers() {
 }
 
 function updateColorInputListeners() {
-    document.querySelectorAll('.color-input-field').forEach(input => {
+    document.querySelectorAll('.text-input.hex-input').forEach(input => {
         input.removeEventListener('input', handleColorInput);
         input.removeEventListener('paste', handlePaste);
         input.removeEventListener('keydown', handleKeyDown);
@@ -265,7 +301,7 @@ function getActiveKeyColors() {
     return [...document.querySelectorAll('.color-input')]
         .filter(c => !c.classList.contains('muted'))
         .map(c => {
-            let hex = c.querySelector('.color-input-field').value;
+            let hex = c.querySelector('.text-input.hex-input').value;
             // Expand 3-digit hex to 6-digit format
             if (hex && hex.length === 3 && /^[0-9A-F]{3}$/i.test(hex)) {
                 hex = hex[0] + hex[0] + hex[1] + hex[1] + hex[2] + hex[2];
@@ -298,7 +334,7 @@ function addKeyColor() {
                 <div class="color-preview"></div>
                 <div class="hex-input-wrapper">
                     <span class="hex-prefix">#</span>
-                    <input type="text" class="color-input-field" value="" maxlength="6" />
+                    <input type="text" class="text-input hex-input" value="" maxlength="6" />
                 </div>
             </div>
         `;
@@ -309,7 +345,7 @@ function addKeyColor() {
         lucide.createIcons();
         
         // Focus the new input field
-        const inputField = newInput.querySelector('.color-input-field');
+        const inputField = newInput.querySelector('.text-input.hex-input');
         inputField.focus();
         
         updateColorInputListeners();
@@ -327,7 +363,7 @@ function deleteColor(index) {
         colorInputs.children[index].remove();
         // Renumber remaining inputs
         Array.from(colorInputs.children).forEach((input, i) => {
-            const color = input.querySelector('.color-input-field').value;
+            const color = input.querySelector('.text-input.hex-input').value;
             const lightness = calculateLightness(color);
             input.dataset.index = i;
             input.querySelector('label').textContent = `KEY-${i + 1}${lightness !== null ? ` L${lightness}` : ''}`;
@@ -352,14 +388,14 @@ function updateDeleteButtonsState() {
     
     // Count valid colors (inputs with 3 or 6-character hex values)
     const validColors = inputs.filter(input => {
-        const colorValue = input.querySelector('.color-input-field').value;
+        const colorValue = input.querySelector('.text-input.hex-input').value;
         return colorValue && (colorValue.length === 6 || (colorValue.length === 3 && /^[0-9A-F]{3}$/i.test(colorValue)));
     });
     
     // Update each delete button
     inputs.forEach(input => {
         const deleteBtn = input.querySelector('.delete-btn');
-        const colorValue = input.querySelector('.color-input-field').value;
+        const colorValue = input.querySelector('.text-input.hex-input').value;
         const isValidColor = colorValue && (colorValue.length === 6 || (colorValue.length === 3 && /^[0-9A-F]{3}$/i.test(colorValue)));
         
         // Hide delete button if:
@@ -386,7 +422,7 @@ function calculateLightness(color) {
 
 function updateLightnessLabels() {
     document.querySelectorAll('.color-input').forEach((input, i) => {
-        const color = input.querySelector('.color-input-field').value;
+        const color = input.querySelector('.text-input.hex-input').value;
         const lightness = calculateLightness(color);
         input.querySelector('label').textContent = `KEY-${i + 1}${lightness !== null ? ` L${lightness}` : ''}`;
     });
@@ -394,7 +430,7 @@ function updateLightnessLabels() {
 
 function updateColorPreviews() {
     document.querySelectorAll('.color-input').forEach(input => {
-        let colorValue = input.querySelector('.color-input-field').value;
+        let colorValue = input.querySelector('.text-input.hex-input').value;
         const preview = input.querySelector('.color-preview');
         
         // Expand 3-digit hex to 6-digit for preview
@@ -587,7 +623,7 @@ function updateGradient(colors) {
         tooltip.style.display = 'block';
         tooltip.style.left = `${e.clientX + 10}px`;
         tooltip.style.top = `${e.clientY + 10}px`;
-        tooltip.textContent = `${Math.round(targetLightness * 100)}%`;
+        tooltip.textContent = `L${Math.round(targetLightness * 100)}`;
     });
 
     // Add both mouseout and mouseleave events
@@ -680,7 +716,7 @@ function addColorToPalette(color, y) {
         
         const lightnessInput = document.createElement('input');
         lightnessInput.type = 'number';
-        lightnessInput.className = 'palette-lightness-input';
+        lightnessInput.className = 'text-input lightness-input';
         lightnessInput.min = '0';
         lightnessInput.max = '100';
         lightnessInput.step = '1';
@@ -809,7 +845,7 @@ function addColorToPaletteByLightness(hex, lightnessValue) {
     
     // Get existing colors with their lightness values
     const existingColors = [...paletteDisplay.children].map(row => {
-        const lightnessInput = row.querySelector('.palette-lightness-input');
+        const lightnessInput = row.querySelector('.text-input.lightness-input');
         return {
             element: row,
             lightness: parseInt(lightnessInput.value),
@@ -903,7 +939,7 @@ function createPaletteRow(hex, lightnessValue, position, index, paletteDisplay, 
     
     const lightnessInput = document.createElement('input');
     lightnessInput.type = 'number';
-    lightnessInput.className = 'palette-lightness-input';
+    lightnessInput.className = 'text-input lightness-input';
     lightnessInput.min = '0';
     lightnessInput.max = '100';
     lightnessInput.step = '1';
@@ -1167,7 +1203,7 @@ function updatePalette(colors) {
         hexDiv.firstChild.textContent = hex;
         
         // Update lightness input value
-        const lightnessInput = item.element.querySelector('.palette-lightness-input');
+        const lightnessInput = item.element.querySelector('.text-input.lightness-input');
         if (lightnessInput) {
             lightnessInput.value = lightness;
         }
@@ -1203,7 +1239,7 @@ function addCopyButtonListeners() {
     document.getElementById('copySVG').addEventListener('click', () => {
         const rows = [...document.querySelectorAll('.palette-row')];
         if (rows.length === 0) return;
-        const rects = rows.map((r, i) => `<rect x="0" y="${i * 40}" width="120" height="40" fill="${r.querySelector('.palette-color').style.backgroundColor}" id="L${r.querySelector('.palette-lightness-input').value}"/>`).join('');
+        const rects = rows.map((r, i) => `<rect x="0" y="${i * 40}" width="120" height="40" fill="${r.querySelector('.palette-color').style.backgroundColor}" id="L${r.querySelector('.text-input.lightness-input').value}"/>`).join('');
         navigator.clipboard.writeText(`<svg xmlns="http://www.w3.org/2000/svg" width="120" height="${rows.length * 40}">${rects}</svg>`);
         showToast('SVG Copied!');
     });
@@ -1218,7 +1254,7 @@ function addCopyButtonListeners() {
             if (!backgroundColor) return null;
 
             const hex = culori.formatHex(backgroundColor).toUpperCase();
-            const lightness = r.querySelector('.palette-lightness-input').value;
+            const lightness = r.querySelector('.text-input.lightness-input').value;
             
             return `  --color-l${lightness}: ${hex};`;
         }).filter(Boolean);
@@ -1226,7 +1262,7 @@ function addCopyButtonListeners() {
         if (cssVariables.length === 0) return;
 
         // Create complete CSS with root selector
-        const cssOutput = `:root {\n${cssVariables.join('\n')}\n}\n\n/* Usage examples:\nbackground-color: var(--color-l${rows[0]?.querySelector('.palette-lightness-input').value || '100'});\ncolor: var(--color-l${rows[rows.length-1]?.querySelector('.palette-lightness-input').value || '0'});\n*/`;
+        const cssOutput = `:root {\n${cssVariables.join('\n')}\n}\n\n/* Usage examples:\nbackground-color: var(--color-l${rows[0]?.querySelector('.text-input.lightness-input').value || '100'});\ncolor: var(--color-l${rows[rows.length-1]?.querySelector('.text-input.lightness-input').value || '0'});\n*/`;
         
         // Copy CSS variables to clipboard
         navigator.clipboard.writeText(cssOutput).then(() => {
@@ -1393,14 +1429,14 @@ function loadFromURL() {
 
 function getCurrentState() {
     const keyColors = [...document.querySelectorAll('.color-input')].map(input => ({
-        color: input.querySelector('.color-input-field').value || '',
+        color: input.querySelector('.text-input.hex-input').value || '',
         muted: input.classList.contains('muted')
     })).filter(c => c.color.trim());
     
     const paletteColors = [...document.querySelectorAll('.palette-row')].map(row => {
         try {
             const colorElement = row.querySelector('.palette-color');
-            const lightnessElement = row.querySelector('.palette-lightness-input');
+            const lightnessElement = row.querySelector('.text-input.lightness-input');
             
             if (!colorElement || !lightnessElement) {
                 return null;
@@ -1456,7 +1492,7 @@ function loadKeyColorsFromParam(param) {
         
         const input = colorInputs.children[index];
         if (input) {
-            const colorField = input.querySelector('.color-input-field');
+            const colorField = input.querySelector('.text-input.hex-input');
             colorField.value = color.toUpperCase();
             
             // Set muted state
@@ -1548,7 +1584,7 @@ function loadPaletteFromParam(param) {
         
         const lightnessInput = document.createElement('input');
         lightnessInput.type = 'number';
-        lightnessInput.className = 'palette-lightness-input';
+        lightnessInput.className = 'text-input lightness-input';
         lightnessInput.min = '0';
         lightnessInput.max = '100';
         lightnessInput.step = '1';
@@ -1666,7 +1702,7 @@ function loadPaletteFromParam(param) {
 
 // Update the initial HTML structure to match the new format
 document.addEventListener('DOMContentLoaded', () => {
-    document.querySelectorAll('.color-input-field').forEach(input => {
+    document.querySelectorAll('.text-input.hex-input').forEach(input => {
         const value = input.value.replace('#', '');
         input.value = value;
     });

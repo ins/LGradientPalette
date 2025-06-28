@@ -1,13 +1,33 @@
 :root {
-    --app-font-family: 'IBM Plex Mono', monospace;
+    --app-font-family: 'Geist Mono', monospace;
+    
+    /* Light mode colors */
+    --bg-primary: white;
+    --bg-secondary: #f5f5f5;
+    --text-primary: #333;
+    --text-secondary: #666;
+    --border-primary: #ddd;
+    --border-secondary: #ccc;
+}
+
+:root.dark-mode {
+    /* Dark mode colors */
+    --bg-primary: #111;
+    --bg-secondary: #333;
+    --text-primary: #e0e0e0;
+    --text-secondary: #888;
+    --border-primary: #444;
+    --border-secondary: #555;
 }
 
 body {
     margin: 0;
     padding: 0;
-    background: white;
+    background: var(--bg-primary);
+    color: var(--text-primary);
     font-family: var(--app-font-family);
     font-size: 14px;
+    transition: background-color 0.2s ease, color 0.2s ease;
 }
 
 .container {
@@ -28,7 +48,7 @@ body {
 h3 {
     margin: 0 0 15px 0;
     font-size: 14px;
-    font-weight: 600;
+    font-weight: 500;
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -42,7 +62,7 @@ h3 {
 .header-buttons button {
     border: none;
     background: none;
-    color: #777;
+    color: var(--text-secondary);
     cursor: pointer;
     padding: 2px;
     display: flex;
@@ -50,11 +70,12 @@ h3 {
     justify-content: center;
     border-radius: 3px;
     margin-left: 4px;
+    transition: background-color 0.2s ease, color 0.2s ease;
 }
 
 .header-buttons button:hover {
-    background: #f0f0f0;
-    color: #333;
+    background: var(--bg-secondary);
+    color: var(--text-primary);
 }
 
 .header-buttons button svg {
@@ -65,18 +86,19 @@ h3 {
 #sortKeyColors {
     border: none;
     background: none;
-    color: #777;
+    color: var(--text-secondary);
     cursor: pointer;
     padding: 2px;
     display: flex;
     align-items: center;
     justify-content: center;
     border-radius: 3px;
+    transition: background-color 0.2s ease, color 0.2s ease;
 }
 
 #sortKeyColors:hover {
-    background: #f0f0f0;
-    color: #333;
+    background: var(--bg-secondary);
+    color: var(--text-primary);
 }
 
 #sortKeyColors svg {
@@ -96,9 +118,11 @@ h3 {
     box-sizing: border-box;
     gap: 4px;
     padding: 8px;
-    border: 1px solid #ddd;
+    border: 1px solid var(--border-primary);
     border-radius: 4px;
     width: 100%;
+    background: var(--bg-primary);
+    transition: border-color 0.2s ease, background-color 0.2s ease;
 }
 
 .color-input.muted {
@@ -115,41 +139,68 @@ h3 {
     width: 16px;
     height: 16px;
     border-radius: 50%;
-    border: 1px solid #ddd;
+    border: 1px solid var(--bg-primary);
     flex-shrink: 0;
 }
 
-.color-input-field {
-    width: 6ch; /* Exactly 7 characters for hex input (FF8800) */
+/* Unified text input styles */
+.text-input {
     border: none;
     padding: 0;
     font-family: var(--app-font-family);
+    font-size: 14px;
     outline: none;
+    background: transparent;
+    color: var(--text-primary);
+    text-align: center;
+    -moz-appearance: textfield; /* For Firefox */
+}
+
+/* For Chrome, Safari, Edge, Opera */
+.text-input::-webkit-outer-spin-button,
+.text-input::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+
+.text-input::placeholder {
+    color: var(--text-secondary);
+}
+
+/* Specific width overrides */
+.text-input.hex-input {
+    width: 6ch; /* Exactly 6 characters for hex input (FF8800) */
+    text-align: left;
+}
+
+.text-input.lightness-input {
+    width: 3ch; /* Exactly 3 characters for lightness values (0-100) */
 }
 
 .delete-btn {
     border: none;
     background: none;
-    color: #999;
+    color: var(--text-secondary);
     cursor: pointer;
     padding: 0;
     display: flex;
     align-items: center;
     justify-content: center;
+    transition: color 0.2s ease;
 }
 
 .delete-btn:hover {
-    color: #666;
+    color: var(--text-primary);
 }
 
 .delete-btn:disabled {
-    color: #ddd;
+    color: var(--text-secondary);
     cursor: not-allowed;
 }
 
 .toggle-btn {
     margin-left: 4px;
-    color: #777;
+    color: var(--text-secondary);
     border: none;
     background: none;
     cursor: pointer;
@@ -157,6 +208,7 @@ h3 {
     display: flex;
     align-items: center;
     justify-content: center;
+    transition: color 0.2s ease;
 }
 
 .toggle-btn svg {
@@ -168,25 +220,26 @@ h3 {
     margin-top: 10px;
     width: 100%;
     padding: 8px;
-    border: 1px solid #ddd;
+    border: 1px solid var(--border-primary);
     border-radius: 4px;
-    background: white;
+    background: var(--bg-primary);
     cursor: pointer;
     display: flex;
     align-items: center;
     justify-content: center;
-    color: #666;
+    color: var(--text-secondary);
+    transition: background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease;
 }
 
 .add-btn:hover {
-    background: #f5f5f5;
-    color: #333;
+    background: var(--bg-secondary);
+    color: var(--text-primary);
 }
 
 .add-btn:disabled {
-    background: #f5f5f5;
+    background: var(--bg-secondary);
     cursor: not-allowed;
-    color: #999;
+    color: var(--text-secondary);
 }
 
 .add-btn svg {
@@ -197,26 +250,25 @@ h3 {
 
 #gradientDisplay {
     width: 100px;
-    height: 600px;
+    height: 400px;
 }
 
 #paletteDisplay {
     display: flex;
     flex-direction: column;
-    height: 600px; /* Match gradient height */
+    height: 400px; /* Match gradient height */
 }
 
 .hex-input-wrapper {
     display: flex;
     align-items: center;
-    border: 1px solid #ddd;
+    border: 1px solid var(--border-primary);
     border-radius: 4px;
     padding: 4px;
-    background: white;
 }
 
 .hex-prefix {
-    color: #999;
+    color: var(--text-secondary);
     margin-right: 1px;
 }
 
@@ -250,6 +302,7 @@ h3 {
 .input-row label {
     font-size: 12px;
     text-transform: uppercase;
+    color: var(--text-secondary);
 }
 
 /* Add styles for the gradient indicators */
@@ -259,7 +312,7 @@ h3 {
     width: 24px;
     height: 24px;
     border-radius: 50%;
-    border: 2px solid white;
+    border: 2px solid var(--bg-primary);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -273,7 +326,7 @@ h3 {
     width: 24px;
     height: 24px;
     border-radius: 50%;
-    border: 2px solid white;
+    border: 2px solid var(--bg-primary);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -319,54 +372,38 @@ h3 {
 }
 
 .palette-hex:hover {
-    color: #666;
+    color: var(--text-secondary);
 }
 
 .palette-hex:active {
-    color: #999;
+    color: var(--text-secondary);
 }
 
 .palette-hex.copied {
-    color: #999;
+    color: var(--text-secondary);
 }
 
 .palette-lightness {
-    color: #666;
+    color: var(--text-secondary);
 }
 
 .palette-lightness-wrapper {
     display: flex;
     align-items: center;
-    border: 1px solid #ddd;
+    border: 1px solid var(--border-primary);
     border-radius: 4px;
     padding: 4px;
-    background: white;
+    background: var(--bg-primary);
+    transition: border-color 0.2s ease, background-color 0.2s ease;
 }
 
 .palette-lightness-prefix {
-    color: #999;
+    color: var(--text-secondary);
     margin-right: 1px;
     font-size: 14px;
 }
 
-.palette-lightness-input {
-    width: 3ch; /* Exactly 3 characters for lightness values (0-100) */
-    border: none;
-    padding: 0;
-    font-family: var(--app-font-family);
-    font-size: 14px;
-    outline: none;
-    background: transparent;
-    text-align: center;
-    -moz-appearance: textfield; /* For Firefox */
-}
-
-/* For Chrome, Safari, Edge, Opera */
-.palette-lightness-input::-webkit-outer-spin-button,
-.palette-lightness-input::-webkit-inner-spin-button {
-  -webkit-appearance: none;
-  margin: 0;
-}
+/* Palette lightness input now uses .text-input.lightness-input */
 
 .palette-delete {
     display: flex;
@@ -374,12 +411,13 @@ h3 {
     border: none;
     background: none;
     padding: 0;
-    color: #999;
+    color: var(--text-secondary);
     cursor: pointer;
+    transition: color 0.2s ease;
 }
 
 .palette-delete:hover {
-    color: #666;
+    color: var(--text-primary);
 }
 
 .palette-delete svg {
@@ -416,42 +454,21 @@ h3 {
 .quick-lightness-input {
     display: flex;
     align-items: center;
-    border: 1px solid #ddd;
+    border: 1px solid var(--border-primary);
     border-radius: 4px;
     padding: 4px;
-    background: white;
+    background: var(--bg-primary);
     margin-right: 4px;
+    transition: border-color 0.2s ease, background-color 0.2s ease;
 }
 
 .lightness-prefix {
-    color: #999;
+    color: var(--text-secondary);
     margin-right: 1px;
     font-size: 14px;
 }
 
-.quick-lightness-input input {
-    width: 3ch; /* Exactly 3 characters for lightness values (0-100) */
-    border: none;
-    padding: 0;
-    font-family: var(--app-font-family);
-    font-size: 14px;
-    outline: none;
-    background: transparent;
-    text-align: center;
-    -moz-appearance: textfield; /* For Firefox */
-}
-
-/* For Chrome, Safari, Edge, Opera */
-.quick-lightness-input input::-webkit-outer-spin-button,
-.quick-lightness-input input::-webkit-inner-spin-button {
-  -webkit-appearance: none;
-  margin: 0;
-}
-
-.quick-lightness-input input::placeholder {
-    color: #999;
-    font-size: 14px;
-}
+/* Quick lightness input now uses .text-input.lightness-input */
 
 .text-btn {
     font-family: var(--app-font-family);
@@ -466,6 +483,6 @@ h3 {
 }
 
 .text-btn:hover {
-    background: #f0f0f0 !important;
-    color: #333 !important;
+    background: var(--bg-secondary) !important;
+    color: var(--text-primary) !important;
 }

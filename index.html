@@ -5,13 +5,20 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Color Palette Generator</title>
     <link rel="stylesheet" href="styles.css">
-    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet">
     <script src="https://unpkg.com/lucide@latest"></script>
 </head>
 <body>
     <div class="container">
         <div class="column key-colors">
-            <h3>Key Colors <button id="sortKeyColors"><i data-lucide="arrow-up-down" size="14"></i></button></h3>
+            <h3>Key Colors 
+                <div class="header-buttons">
+                    <button id="darkModeToggle" title="Toggle dark mode">
+                        <i data-lucide="sun" size="14"></i>
+                    </button>
+                    <button id="sortKeyColors"><i data-lucide="arrow-up-down" size="14"></i></button>
+                </div>
+            </h3>
             <div class="color-inputs" id="colorInputs">
                 <div class="color-input" data-index="0">
                     <div class="input-row">
@@ -27,7 +34,7 @@
                         <div class="color-preview"></div>
                         <div class="hex-input-wrapper">
                             <span class="hex-prefix">#</span>
-                            <input type="text" class="color-input-field" value="FF8800" maxlength="6" />
+                            <input type="text" class="text-input hex-input" value="FF8800" maxlength="6" />
                         </div>
                     </div>
                 </div>
@@ -46,7 +53,7 @@
                 <span class="header-buttons">
                     <div class="quick-lightness-input">
                         <span class="lightness-prefix">L</span>
-                        <input type="number" id="quickLightnessInput" min="0" max="100" step="1" />
+                        <input type="number" id="quickLightnessInput" class="text-input lightness-input" min="0" max="100" step="1" />
                     </div>
                     <button id="copySVG" class="text-btn">Copy SVG</button>
                     <button id="copyFigma" class="text-btn">Copy CSS</button>
