@@ -4,6 +4,15 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Color Palette Generator</title>
+    <script>
+        // Prevents FOUC (flash of unstyled content) for dark mode
+        (function() {
+            const isDarkMode = localStorage.getItem('darkMode') === 'true';
+            if (isDarkMode) {
+                document.documentElement.classList.add('dark-mode');
+            }
+        })();
+    </script>
     <link rel="stylesheet" href="styles.css">
     <link href="https://fonts.googleapis.com/css2?family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet">
     <script src="https://unpkg.com/lucide@latest"></script>
@@ -11,26 +20,25 @@
 <body>
     <div class="container">
         <div class="column key-colors">
-            <h3>Key Colors 
-                <div class="header-buttons">
-                    <button id="darkModeToggle" title="Toggle dark mode">
-                        <i data-lucide="sun"></i>
-                    </button>
-                    <button id="sortKeyColors"><i data-lucide="arrow-down-wide-narrow"></i></button>
-                </div>
-            </h3>
+            <div class="column-header">
+                <h3>Key Colors</h3>
+                <button id="darkModeToggle" title="Toggle dark mode">
+                    <i data-lucide="sun"></i>
+                </button>
+                <button id="sortKeyColors"><i data-lucide="arrow-down-wide-narrow"></i></button>
+            </div>
             <div class="color-inputs" id="colorInputs">
                 <div class="color-input" data-index="0">
                     <div class="color-preview-numbered">1</div>
                     <div class="input-wrapper">
-                        <span class="hex-prefix">#</span>
+                        <span class="prefix">#</span>
                         <input type="text" class="text-input hex-input" value="FF8800" maxlength="6" />
                     </div>
                     <span class="lightness-display">L64</span>
                     <button class="toggle-btn" onclick="toggleKeyColor(this)">
                         <i data-lucide="eye"></i>
                     </button>
-                    <button class="delete-btn" onclick="deleteColor(0)" disabled>
+                    <button class="delete-btn" onclick="deleteColor(this)">
                         <i data-lucide="x"></i>
                     </button>
                 </div>
@@ -40,22 +48,21 @@
             </button>
         </div>
         <div class="column l-gradient">
-            <h3>L-Gradient</h3>
+            <div class="column-header"><h3>L-Gradient</h3></div>
+            
             <div id="gradientDisplay"></div>
         </div>
         <div class="column palette">
-            <h3>
-                Palette
-                <span class="header-buttons">
-                    <div class="quick-lightness-input input-wrapper">
-                        <span class="lightness-prefix">L</span>
-                        <input type="number" id="quickLightnessInput" class="text-input lightness-input" min="0" max="100" step="1" />
-                    </div>
-                    <button id="copySVG" class="text-btn">Copy SVG</button>
-                    <button id="copyFigma" class="text-btn">Copy CSS</button>
-                    <button id="clearPalette" class="text-btn">Clear</button>
-                </span>
-            </h3>
+            <div class="column-header">
+                <h3>Palette</h3>
+                <div class="quick-lightness-input input-wrapper">
+                    <span class="prefix">L</span>
+                    <input type="number" id="quickLightnessInput" class="text-input lightness-input" min="0" max="100" step="1" />
+                </div>
+                <button id="copySVG" class="text-btn">Copy SVG</button>
+                <button id="copyFigma" class="text-btn">Copy CSS</button>
+                <button id="clearPalette" class="text-btn">Clear</button>
+            </div>
             <div id="paletteDisplay"></div>
         </div>
     </div>

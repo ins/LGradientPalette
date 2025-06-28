@@ -8,6 +8,7 @@
     --bg-tertiary: #f8f8f8;
     --text-primary: #000;
     --text-secondary: #636363;
+    --text-tertiary: #63636380;
     --border-primary: #636363;
     --border-secondary: #BEBEBE;
 }
@@ -19,6 +20,7 @@
     --bg-tertiary: #1b1b1b;
     --text-primary: #e0e0e0;
     --text-secondary: #888;
+    --text-tertiary: #88888880;
     --border-primary: #888;
     --border-secondary: #555;
 }
@@ -55,22 +57,22 @@ svg {
     min-width: max-content;
 }
 
-h3 {
-    margin: 0 0 15px 0;
-    font-size: 14px;
-    font-weight: 500;
+.column-header {
     display: flex;
     align-items: center;
-    justify-content: space-between;
+    gap: 8px;
+    margin-bottom: 12px;
+    height: 28px;
 }
 
-.header-buttons {
-    display: flex;
-    align-items: center;
+h3 {
+    margin: 0;
+    font-size: 14px;
+    font-weight: 500;
 }
 
 /* Unified Icon Button Styles */
-.header-buttons button,
+#darkModeToggle,
 #sortKeyColors,
 .toggle-btn,
 .delete-btn,
@@ -86,7 +88,7 @@ h3 {
     transition: color 0.2s ease;
 }
 
-.header-buttons button:hover,
+#darkModeToggle:hover,
 #sortKeyColors:hover,
 .toggle-btn:hover,
 .delete-btn:hover,
@@ -95,21 +97,14 @@ h3 {
 }
 
 /* Spacing & border-radius overrides for specific icon buttons */
-.header-buttons button,
+#darkModeToggle,
 #sortKeyColors {
     padding: 2px;
-    margin-left: 4px;
     border-radius: 3px;
 }
 
 .toggle-btn {
     margin-left: 4px;
-}
-
-.delete-btn:disabled {
-    color: var(--text-secondary);
-    cursor: not-allowed;
-    opacity: 0.5;
 }
 
 .color-inputs {
@@ -142,7 +137,7 @@ h3 {
     justify-content: center;
     font-size: 12px;
     font-weight: 500;
-    color: #000000; /* Will be updated dynamically based on lightness */
+    color: var(--text-primary); /* Will be updated dynamically based on lightness */
 }
 
 .lightness-display {
@@ -233,15 +228,15 @@ h3 {
     background: var(--bg-secondary);
     border: 1px solid var(--bg-secondary);
     transition: border-color 0.2s ease, background-color 0.2s ease;
+    cursor: text;
 }
 
 .input-wrapper:focus-within {
     border-color: var(--border-primary);
 }
 
-.hex-prefix,
-.lightness-prefix,
-.palette-lightness-prefix {
+/* Unified prefix styling for all input wrappers */
+.prefix {
     color: var(--text-secondary);
     margin-right: 1px;
     font-size: 14px;
@@ -352,15 +347,18 @@ h3 {
 }
 
 .quick-lightness-input {
-    margin-right: 4px;
+    /* No longer needed due to gap */
 }
 
 .text-btn {
     font-family: var(--app-font-family);
     font-size: 12px;
     font-weight: 500;
-    padding: 4px 6px !important;
-    border-radius: 3px;
+    padding: 4px 6px;
+    border-radius: 4px;
+    background: transparent;
+    color: var(--text-secondary);
+    border: none;
     text-transform: uppercase;
     letter-spacing: 0.5px;
     white-space: nowrap;
@@ -368,6 +366,6 @@ h3 {
 }
 
 .text-btn:hover {
-    background: var(--bg-secondary) !important;
-    color: var(--text-primary) !important;
+    background: var(--bg-secondary);
+    color: var(--text-primary);
 }

@@ -30,7 +30,8 @@ function init() {
         // Update indices and labels after sorting
         list.forEach((input, i) => {
             input.dataset.index = i;
-            input.querySelector('.delete-btn').setAttribute('onclick', `deleteColor(${i})`);
+            input.querySelector('.color-preview-numbered').textContent = i + 1;
+            input.querySelector('.delete-btn').setAttribute('onclick', `deleteColor(this)`);
         });
         
         updateLightnessLabels();
@@ -50,11 +51,6 @@ function init() {
     updateColorPreviews();
     updateDisplays();
     
-    // Ensure delete buttons are properly enabled/disabled
-    updateDeleteButtonsState();
-    
-
-    
     // Set up global drag and drop handlers for palette indicators
     setupPaletteDragHandlers();
     
@@ -63,6 +59,9 @@ function init() {
     
     // Set up quick lightness input
     setupQuickLightnessInput();
+    
+    // Set up input wrapper click behavior
+    setupInputWrapperBehavior();
     
     // Listen for browser back/forward navigation
     window.addEventListener('popstate', (e) => {
@@ -93,11 +92,9 @@ function init() {
 function initializeDarkMode() {
     const isDarkMode = localStorage.getItem('darkMode') === 'true';
     if (isDarkMode) {
-        document.documentElement.classList.add('dark-mode');
-        // Only update icon if DOM is ready
-        if (document.getElementById('darkModeToggle')) {
-            updateDarkModeIcon(true);
-        }
+        // The class is set by the inline script in <head> to prevent FOUC.
+        // This function only needs to ensure the icon is correct on load.
+        updateDarkModeIcon(true);
     }
 }
 
@@ -340,14 +337,14 @@ function addKeyColor() {
         newInput.innerHTML = `
             <div class="color-preview-numbered">${currentCount + 1}</div>
             <div class="input-wrapper">
-                <span class="hex-prefix">#</span>
+                <span class="prefix">#</span>
                 <input type="text" class="text-input hex-input" value="" maxlength="6" />
             </div>
             <span class="lightness-display">L--</span>
             <button class="toggle-btn" onclick="toggleKeyColor(this)">
                 <i data-lucide="eye" size="16"></i>
             </button>
-            <button class="delete-btn" onclick="deleteColor(${currentCount})">
+            <button class="delete-btn" onclick="deleteColor(this)">
                 <i data-lucide="x" size="16"></i>
             </button>
         `;
@@ -370,18 +367,19 @@ function addKeyColor() {
     }
 }
 
-function deleteColor(index) {
+function deleteColor(buttonElement) {
     const colorInputs = document.getElementById('colorInputs');
-    if (colorInputs.children.length > 1) {
-        colorInputs.children[index].remove();
+    const colorInputToDelete = buttonElement.closest('.color-input');
+
+    if (colorInputToDelete) {
+        colorInputToDelete.remove();
         // Renumber remaining inputs
         Array.from(colorInputs.children).forEach((input, i) => {
             input.dataset.index = i;
             input.querySelector('.color-preview-numbered').textContent = i + 1;
-            input.querySelector('.delete-btn').setAttribute('onclick', `deleteColor(${i})`);
+            // No need to update onclick as it's always 'deleteColor(this)'
         });
         updateAddButtonState();
-        updateDeleteButtonsState();
         updateDisplays();
         updateURL(); // Update URL when deleting colors
     }
@@ -396,26 +394,28 @@ function updateAddButtonState() {
 function updateDeleteButtonsState() {
     const colorInputs = document.getElementById('colorInputs');
     const inputs = Array.from(colorInputs.children);
-    
-    // Count valid colors (inputs with 3 or 6-character hex values)
-    const validColors = inputs.filter(input => {
-        const colorValue = input.querySelector('.text-input.hex-input').value;
-        return colorValue && (colorValue.length === 6 || (colorValue.length === 3 && /^[0-9A-F]{3}$/i.test(colorValue)));
-    });
-    
-    // Update each delete button
+    const isDisabled = inputs.length <= 1;
+
     inputs.forEach(input => {
         const deleteBtn = input.querySelector('.delete-btn');
-        const colorValue = input.querySelector('.text-input.hex-input').value;
-        const isValidColor = colorValue && (colorValue.length === 6 || (colorValue.length === 3 && /^[0-9A-F]{3}$/i.test(colorValue)));
-        
-        // Hide delete button if:
-        // 1. It's the only input, OR
-        // 2. It's a valid color and there's only one valid color total
-        const shouldHide = inputs.length === 1 || (isValidColor && validColors.length === 1);
-        
-        deleteBtn.disabled = shouldHide;
-        deleteBtn.style.visibility = shouldHide ? 'hidden' : 'visible';
+        if (deleteBtn) {
+            deleteBtn.disabled = isDisabled;
+        }
+    });
+}
+
+function updateToggleButtonsState() {
+    const allInputs = Array.from(document.querySelectorAll('.color-input'));
+    const visibleInputs = allInputs.filter(input => !input.classList.contains('muted'));
+    const isOnlyOneVisible = visibleInputs.length === 1;
+
+    allInputs.forEach(input => {
+        const toggleBtn = input.querySelector('.toggle-btn');
+        if (toggleBtn) {
+            const isThisInputVisible = !input.classList.contains('muted');
+            // Disable the button if it's the only one visible.
+            toggleBtn.disabled = isOnlyOneVisible && isThisInputVisible;
+        }
     });
 }
 
@@ -456,10 +456,9 @@ function updateColorPreviews() {
             
             // Calculate lightness to determine text color
             const oklch = culori.oklch('#' + colorValue);
-            preview.style.color = oklch && oklch.l > 0.66 ? '#000000' : '#FFFFFF';
+            preview.style.color = oklch && oklch.l > 0.71 ? '#000000' : '#FFFFFF';
         } else {
             preview.style.backgroundColor = 'transparent';
-            preview.style.color = '#000000';
         }
     });
 }
@@ -594,7 +593,7 @@ function updateGradient(colors) {
         indicator.className = 'gradient-indicator';
         indicator.style.top = `${keyColor.position - 12}px`;
         indicator.style.backgroundColor = `#${keyColor.hex}`;
-        indicator.style.color = keyColor.color.l > 0.66 ? '#000000' : '#FFFFFF';
+        indicator.style.color = keyColor.color.l > 0.71 ? '#000000' : '#FFFFFF';
         indicator.textContent = keyColor.index;
         wrapper.appendChild(indicator);
     });
@@ -733,7 +732,7 @@ function addColorToPalette(color, y) {
         lightnessWrapper.className = 'input-wrapper';
         
         const lightnessPrefix = document.createElement('span');
-        lightnessPrefix.className = 'palette-lightness-prefix';
+        lightnessPrefix.className = 'prefix';
         lightnessPrefix.textContent = 'L';
         
         const lightnessInput = document.createElement('input');
@@ -843,8 +842,8 @@ function addColorToPalette(color, y) {
         indicator.className = 'palette-indicator';
         indicator.style.top = `${item.position - 12}px`;
         indicator.style.backgroundColor = hex;
-        // Update threshold to 0.66
-        indicator.style.color = oklch.l > 0.66 ? '#000000' : '#FFFFFF';
+        // Update threshold to 0.71
+        indicator.style.color = oklch.l > 0.71 ? '#000000' : '#FFFFFF';
         indicator.textContent = index + 1;
         indicator.dataset.rowIndex = index;
         gradientDisplay.appendChild(indicator);
@@ -906,7 +905,7 @@ function addColorToPaletteByLightness(hex, lightnessValue) {
             indicator.className = 'palette-indicator';
             indicator.style.top = `${item.position - 12}px`;
             indicator.style.backgroundColor = hex;
-            indicator.style.color = oklch.l > 0.66 ? '#000000' : '#FFFFFF';
+            indicator.style.color = oklch.l > 0.71 ? '#000000' : '#FFFFFF';
             indicator.textContent = index + 1;
             indicator.dataset.rowIndex = index;
             gradientDisplay.appendChild(indicator);
@@ -956,7 +955,7 @@ function createPaletteRow(hex, lightnessValue, position, index, paletteDisplay, 
     lightnessWrapper.className = 'input-wrapper';
     
     const lightnessPrefix = document.createElement('span');
-    lightnessPrefix.className = 'palette-lightness-prefix';
+    lightnessPrefix.className = 'prefix';
     lightnessPrefix.textContent = 'L';
     
     const lightnessInput = document.createElement('input');
@@ -1058,7 +1057,7 @@ function createPaletteRow(hex, lightnessValue, position, index, paletteDisplay, 
     indicator.className = 'palette-indicator';
     indicator.style.top = `${position - 12}px`;
     indicator.style.backgroundColor = hex;
-    indicator.style.color = oklch.l > 0.66 ? '#000000' : '#FFFFFF';
+    indicator.style.color = oklch.l > 0.71 ? '#000000' : '#FFFFFF';
     indicator.textContent = index + 1;
     indicator.dataset.rowIndex = index;
     gradientDisplay.appendChild(indicator);
@@ -1083,8 +1082,8 @@ function updatePaletteIndicators() {
         indicator.style.backgroundColor = color;
         
         const oklch = culori.oklch(color);
-        // Update threshold to 0.66
-        indicator.style.color = oklch.l > 0.66 ? '#000000' : '#FFFFFF';
+        // Update threshold to 0.71
+        indicator.style.color = oklch.l > 0.71 ? '#000000' : '#FFFFFF';
         indicator.textContent = index + 1;
         
         // Store the row index as a data attribute for event delegation
@@ -1235,8 +1234,8 @@ function updatePalette(colors) {
         indicator.className = 'palette-indicator';
         indicator.style.top = `${item.position - 12}px`;
         indicator.style.backgroundColor = hex;
-        // Update threshold to 0.66
-        indicator.style.color = color.l > 0.66 ? '#000000' : '#FFFFFF';
+        // Update threshold to 0.71
+        indicator.style.color = color.l > 0.71 ? '#000000' : '#FFFFFF';
         indicator.textContent = index + 1;
         indicator.dataset.rowIndex = index;
         gradientDisplay.appendChild(indicator);
@@ -1382,6 +1381,21 @@ function setupQuickLightnessInput() {
         if (!isNaN(value)) {
             if (value < 0) e.target.value = 0;
             if (value > 100) e.target.value = 100;
+        }
+    });
+}
+
+function setupInputWrapperBehavior() {
+    document.body.addEventListener('click', function(e) {
+        // Use event delegation for dynamically added elements
+        const wrapper = e.target.closest('.input-wrapper');
+        
+        if (wrapper) {
+            const input = wrapper.querySelector('.text-input');
+            // If the input exists and is not already the active element, focus it.
+            if (input && document.activeElement !== input) {
+                input.focus();
+            }
         }
     });
 }
@@ -1544,6 +1558,7 @@ function loadKeyColorsFromParam(param) {
             }
         }
     });
+    updateToggleButtonsState();
 }
 
 function loadPaletteFromParam(param) {
@@ -1613,7 +1628,7 @@ function loadPaletteFromParam(param) {
         lightnessWrapper.className = 'input-wrapper';
         
         const lightnessPrefix = document.createElement('span');
-        lightnessPrefix.className = 'palette-lightness-prefix';
+        lightnessPrefix.className = 'prefix';
         lightnessPrefix.textContent = 'L';
         
         const lightnessInput = document.createElement('input');
@@ -1725,7 +1740,7 @@ function loadPaletteFromParam(param) {
         indicator.style.backgroundColor = '#' + color;
         
         const oklch = culori.oklch('#' + color);
-        indicator.style.color = oklch.l > 0.66 ? '#000000' : '#FFFFFF';
+        indicator.style.color = oklch.l > 0.71 ? '#000000' : '#FFFFFF';
         indicator.textContent = index + 1;
         indicator.dataset.rowIndex = index;
         gradientDisplay.appendChild(indicator);
