@@ -603,6 +603,22 @@ function updateGradient(colors) {
         const rect = canvas.getBoundingClientRect();
         const y = e.clientY - rect.top;
         const targetLightness = 1 - (y / canvas.height);
+        const clickedLightness = Math.round(targetLightness * 100);
+        
+        // Check if a color with similar lightness already exists in the palette
+        const paletteDisplay = document.getElementById('paletteDisplay');
+        const existingLightnesses = [...paletteDisplay.children].map(row => {
+            const lightnessInput = row.querySelector('.text-input.lightness-input');
+            return parseInt(lightnessInput.value);
+        });
+        
+        // Check if clicked lightness exactly matches any existing lightness
+        const isDuplicate = existingLightnesses.includes(clickedLightness);
+        
+        if (isDuplicate) {
+            return; // Don't add duplicate color
+        }
+        
         let color;
 
         if (targetLightness >= keyColors[0].color.l) {
@@ -1330,6 +1346,20 @@ function setupQuickLightnessInput() {
             // Validate lightness value
             if (isNaN(lightnessValue) || lightnessValue < 0 || lightnessValue > 100) {
                 return;
+            }
+            
+            // Check if a color with similar lightness already exists in the palette
+            const paletteDisplay = document.getElementById('paletteDisplay');
+            const existingLightnesses = [...paletteDisplay.children].map(row => {
+                const lightnessInput = row.querySelector('.text-input.lightness-input');
+                return parseInt(lightnessInput.value);
+            });
+            
+            // Check if input lightness exactly matches any existing lightness
+            const isDuplicate = existingLightnesses.includes(lightnessValue);
+            
+            if (isDuplicate) {
+                return; // Don't add duplicate color
             }
             
             // Check if we have active key colors

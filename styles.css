@@ -1,15 +1,26 @@
+/* ================================
+   CSS CUSTOM PROPERTIES (VARIABLES)
+   ================================ */
+
 :root {
-    --app-font-family: 'Geist Mono', monospace;
+    /* Typography */
+    --font-mono: 'Geist Mono', monospace;
+    --font-sans: 'Geist', sans-serif;
+    --font-size-base: 14px;
+    --font-size-small: 12px;
+    
+    /* Sizing */
     --icon-size: 16px;
+    --border-radius: 4px;
     
     /* Light mode colors */
     --bg-primary: #fff;
     --bg-secondary: #f2f2f2;
     --bg-tertiary: #f8f8f8;
     --text-primary: #000;
-    --text-secondary: #636363;
-    --text-tertiary: #63636380;
-    --border-primary: #636363;
+    --text-secondary: #808080;
+    --text-tertiary: #80808080;
+    --border-primary: #808080;
     --border-secondary: #BEBEBE;
 }
 
@@ -25,31 +36,40 @@
     --border-secondary: #555;
 }
 
+/* ================================
+   BASE STYLES
+   ================================ */
+
 body {
     margin: 0;
     padding: 0;
     background: var(--bg-primary);
     color: var(--text-primary);
-    font-family: var(--app-font-family);
-    font-size: 14px;
+    font-family: var(--font-mono);
+    font-size: var(--font-size-base);
     transition: background-color 0.2s ease, color 0.2s ease;
 }
 
-/* Universal icon sizing */
+h3 {
+    margin: 0;
+    font-size: var(--font-size-base);
+    font-weight: 500;
+    font-family: var(--font-sans);
+}
+
 svg {
     width: var(--icon-size);
     height: var(--icon-size);
 }
 
+/* ================================
+   LAYOUT COMPONENTS
+   ================================ */
+
 .container {
     display: flex;
     gap: 40px;
     padding: 20px;
-}
-
-.column {
-    width: 100px;
-    min-height: 400px;
 }
 
 .column.key-colors {
@@ -65,13 +85,22 @@ svg {
     height: 28px;
 }
 
-h3 {
-    margin: 0;
-    font-size: 14px;
-    font-weight: 500;
+#gradientDisplay {
+    width: 100px;
+    height: 400px;
 }
 
-/* Unified Icon Button Styles */
+#paletteDisplay {
+    display: flex;
+    flex-direction: column;
+    height: 400px;
+}
+
+/* ================================
+   BUTTON COMPONENTS
+   ================================ */
+
+/* Icon buttons */
 #darkModeToggle,
 #sortKeyColors,
 .toggle-btn,
@@ -96,7 +125,6 @@ h3 {
     color: var(--text-primary);
 }
 
-/* Spacing & border-radius overrides for specific icon buttons */
 #darkModeToggle,
 #sortKeyColors {
     padding: 2px;
@@ -107,52 +135,89 @@ h3 {
     margin-left: 4px;
 }
 
-.color-inputs {
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-}
-
-.color-input {
-    display: flex;
-    align-items: center;
-    box-sizing: border-box;
-    gap: 8px;
-    width: 100%;
-    background: var(--bg-primary);
-    transition: border-color 0.2s ease, background-color 0.2s ease;
-}
-
-.color-input.muted {
-    opacity: .35;
-}
-
-.color-preview-numbered {
-    width: 24px;
-    height: 24px;
-    border-radius: 50%;
-    flex-shrink: 0;
+/* Add button */
+.add-btn {
+    margin-top: 4px;
+    margin-left: 32px;
+    width: 84px;
+    padding: 6px;
+    border-radius: var(--border-radius);
+    border: 0;
+    cursor: pointer;
     display: flex;
     align-items: center;
+    background-color: var(--bg-tertiary);
     justify-content: center;
-    font-size: 12px;
-    font-weight: 500;
-    color: var(--text-primary); /* Will be updated dynamically based on lightness */
-}
-
-.lightness-display {
-    font-size: 12px;
     color: var(--text-secondary);
-    font-weight: 500;
-    min-width: 3ch;
+    transition: 0.2s ease;
 }
 
-/* Unified text input styles */
+.add-btn:hover {
+    background-color: var(--bg-secondary);
+    color: var(--text-primary);
+}
+
+.add-btn:disabled {
+    background: var(--bg-secondary);
+    cursor: not-allowed;
+    color: var(--text-secondary);
+}
+
+/* Text buttons */
+.text-btn {
+    font-family: var(--font-sans);
+    font-size: var(--font-size-small);
+    font-weight: 500;
+    padding: 4px 6px;
+    border-radius: var(--border-radius);
+    background: transparent;
+    color: var(--text-secondary);
+    border: none;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    white-space: nowrap;
+    width: auto;
+}
+
+.text-btn:hover {
+    background: var(--bg-secondary);
+    color: var(--text-primary);
+}
+
+/* ================================
+   FORM COMPONENTS
+   ================================ */
+
+/* Input wrapper */
+.input-wrapper {
+    display: flex;
+    align-items: center;
+    border-radius: var(--border-radius);
+    padding: 4px 10px 4px 8px;
+    box-sizing: border-box;
+    gap: 4px;
+    background: var(--bg-secondary);
+    border: 1px solid var(--bg-secondary);
+    transition: border-color 0.2s ease, background-color 0.2s ease;
+    cursor: text;
+}
+
+.input-wrapper:focus-within {
+    border-color: var(--border-primary);
+}
+
+.prefix {
+    color: var(--text-secondary);
+    margin-right: 1px;
+    font-size: var(--font-size-base);
+}
+
+/* Text inputs */
 .text-input {
     border: none;
     padding: 0;
-    font-family: var(--app-font-family);
-    font-size: 14px;
+    font-family: var(--font-mono);
+    font-size: var(--font-size-base);
     outline: none;
     background: transparent;
     color: var(--text-primary);
@@ -179,79 +244,53 @@ h3 {
     width: 3ch;
 }
 
-.add-btn {
-    margin-top: 4px;
-    margin-left: 32px;
-    width: 84px;
-    padding: 6px;
-    border-radius: 4px;
-    border: 0;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    background-color: var(--bg-tertiary);
-    justify-content: center;
-    color: var(--text-secondary);
-    transition: 0.2s ease;
-}
+/* ================================
+   KEY COLORS SECTION
+   ================================ */
 
-.add-btn:hover {
-    background-color: var(--bg-secondary);
-    color: var(--text-primary);
-}
-
-.add-btn:disabled {
-    background: var(--bg-secondary);
-    cursor: not-allowed;
-    color: var(--text-secondary);
-}
-
-#gradientDisplay {
-    width: 100px;
-    height: 400px;
-}
-
-#paletteDisplay {
+.color-inputs {
     display: flex;
     flex-direction: column;
-    height: 400px;
+    gap: 4px;
 }
 
-/* Unified input wrapper for all text inputs with prefixes */
-.input-wrapper {
+.color-input {
     display: flex;
     align-items: center;
-    border-radius: 4px;
-    padding: 4px 10px 4px 8px;
     box-sizing: border-box;
-    gap: 4px;
-    background: var(--bg-secondary);
-    border: 1px solid var(--bg-secondary);
+    gap: 8px;
+    width: 100%;
+    background: var(--bg-primary);
     transition: border-color 0.2s ease, background-color 0.2s ease;
-    cursor: text;
 }
 
-.input-wrapper:focus-within {
-    border-color: var(--border-primary);
+.color-input.muted {
+    opacity: .5;
 }
 
-/* Unified prefix styling for all input wrappers */
-.prefix {
+.color-preview-numbered {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: var(--font-size-small);
+    font-weight: 500;
+    color: var(--text-primary); /* Will be updated dynamically based on lightness */
+}
+
+.lightness-display {
+    font-size: var(--font-size-small);
     color: var(--text-secondary);
-    margin-right: 1px;
-    font-size: 14px;
+    font-weight: 500;
+    min-width: 3ch;
 }
 
-.tooltip {
-    position: fixed;
-    background: rgba(0, 0, 0, 0.8);
-    color: white;
-    padding: 4px 8px;
-    border-radius: 4px;
-    font-size: 12px;
-    pointer-events: none;
-    z-index: 1000;
-}
+/* ================================
+   GRADIENT SECTION
+   ================================ */
 
 .gradient-indicator {
     position: absolute;
@@ -263,33 +302,13 @@ h3 {
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 12px;
+    font-size: var(--font-size-small);
     font-weight: 500;
 }
 
-.palette-indicator {
-    position: absolute;
-    right: -14px;
-    width: 24px;
-    height: 24px;
-    border-radius: 50%;
-    border: 2px solid var(--bg-primary);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 12px;
-    font-weight: 500;
-    cursor: move;
-    user-select: none;
-    z-index: 10;
-    pointer-events: auto;
-}
-
-.palette-indicator:hover {
-    transform: scale(1.1);
-    transition: transform 0.1s ease;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.2);
-}
+/* ================================
+   PALETTE SECTION
+   ================================ */
 
 .palette-row {
     display: flex;
@@ -322,19 +341,59 @@ h3 {
 }
 
 .palette-hex.copied {
-    color: var(--text-secondary);
+    opacity: .8;
+}
+
+.palette-indicator {
+    position: absolute;
+    right: -14px;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    border: 2px solid var(--bg-primary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: var(--font-size-small);
+    font-weight: 500;
+    cursor: move;
+    user-select: none;
+    z-index: 10;
+    pointer-events: auto;
+}
+
+.palette-indicator:hover {
+    transform: scale(1.1);
+    transition: transform 0.1s ease;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+}
+
+/* ================================
+   UI FEEDBACK COMPONENTS
+   ================================ */
+
+.tooltip {
+    position: fixed;
+    background: var(--text-primary);
+    color: var(--bg-primary);
+    padding: 4px 8px;
+    border-radius: var(--border-radius);
+    font-size: var(--font-size-small);
+    pointer-events: none;
+    z-index: 1000;
 }
 
 .toast {
+    font-family: var(--font-sans);
     position: fixed;
-    top: 20px;
+    top: 56px;
     left: 50%;
     transform: translateX(-50%);
-    background: rgba(0,0,0,0.8);
-    color: white;
+    background: var(--text-primary);
+    color: var(--bg-primary);
     padding: 8px 16px;
-    border-radius: 4px;
-    font-size: 14px;
+    border-radius: var(--border-radius);
+    font-size: var(--font-size-base);
     z-index: 1001;
     opacity: 0;
     transition: opacity 0.3s ease-in-out, top 0.3s ease-in-out;
@@ -343,29 +402,5 @@ h3 {
 
 .toast.show {
     opacity: 1;
-    top: 30px;
-}
-
-.quick-lightness-input {
-    /* No longer needed due to gap */
-}
-
-.text-btn {
-    font-family: var(--app-font-family);
-    font-size: 12px;
-    font-weight: 500;
-    padding: 4px 6px;
-    border-radius: 4px;
-    background: transparent;
-    color: var(--text-secondary);
-    border: none;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-    white-space: nowrap;
-    width: auto;
-}
-
-.text-btn:hover {
-    background: var(--bg-secondary);
-    color: var(--text-primary);
+    top: 48px;
 }
